@@ -1,192 +1,157 @@
-import { Injectable, UnauthorizedException, BadRequestException, ArgumentsHost } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
-import { AuthCredentialsDto, AuthEmailDto, CreateUserDto, UpdateUserDto } from './dto/auth-credentials.dto';
-import { AuthLoginMetadata, JwtPayload } from './jwt-payload.interface';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { TokenVerifyEmail, User, } from './user.model';
-import { v1 as uuidv1 } from 'uuid';
-import { SendEmailMiddleware } from './../core/middleware/send-email.middleware';
-import { RequestContextMetadataService } from '../core/services/request-context-metadata.service';
-import { ConfigService } from '../core/config/config.service';
-import { Role } from '../core/enums/role.enum';
-import { use } from 'passport';
+import { Injectable, UnauthorizedException, BadRequestException } from "@nestjs/common"
+import type { JwtService } from "@nestjs/jwt"
+import * as bcrypt from "bcrypt"
+import type { UsersService } from "../users/users.service"
+import type { EmailService } from "../email/email.service"
+import type { AuditService } from "../audit/audit.service"
+import type { CreateUserDto } from "../users/dto/create-user.dto"
+import { v4 as uuidv4 } from "uuid"
 
 @Injectable()
 export class AuthService {
-    constructor(
-        @InjectModel('User') private userModel: Model<User>,
-        @InjectModel('TokenVerifyEmail') private tokenVerifyEmailModel: Model<TokenVerifyEmail>,
-        private jwtService: JwtService,
-        private sendEmailMiddleware: SendEmailMiddleware,
-        private configService: ConfigService,
-    ) { }
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+    private emailService: EmailService,
+    private auditService: AuditService,
+  ) {}
 
-    async createUser(createUserDto: CreateUserDto) {
-        if (!(createUserDto.roles.includes(Role.Admin) || createUserDto.roles.includes(Role.User))) {
-            throw new BadRequestException(`roles must include one of 'admin' or 'user'`);
-        }
+  async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.usersService.findByEmail(email)
 
-        let userToAttempt = await this.findOneByEmail(createUserDto.email);
-        if (!userToAttempt) {
-            const newUser = new this.userModel({
-                email: createUserDto.email,
-                name: createUserDto.name,
-                roles: createUserDto.roles,
-                password: createUserDto.password
-            });
-            return await newUser.save().then((user) => {
-                const newTokenVerifyEmail = new this.tokenVerifyEmailModel({
-                    userId: user._id,
-                    tokenVerifyEmail: uuidv1()
-                });
-                newTokenVerifyEmail.save();
-
-                this.sendEmailMiddleware.sendEmail(user.email, newTokenVerifyEmail.tokenVerifyEmail, []);
-                return user.toObject({ versionKey: false });
-            });
-        } else {
-            throw new BadRequestException('Email already exist!');
-        }
+    if (!user) {
+      throw new UnauthorizedException("Invalid credentials")
     }
 
-    async deleteUser(auth: AuthEmailDto) {
-        if (!auth.email) {
-            throw new BadRequestException('Email have to be provided.');
-        }
+    const isPasswordValid = await bcrypt.compare(password, user.password)
 
-        const authMeta = RequestContextMetadataService.getMetadata('AUTH_METADATA') as AuthLoginMetadata;
-        if (!!authMeta) {
-            try {
-                return await this.userModel.findOneAndRemove({ email: auth.email })
-                    .then(e => {
-                        return `Success delete ${auth.email} account.`
-                    }).catch(e => {
-                        return new BadRequestException('Email is not exist!');
-                    });
-            } catch (e) {
-                console.log('error', e);
-            }
-        } else {
-            throw new UnauthorizedException();
-        }
+    if (!isPasswordValid) {
+      throw new UnauthorizedException("Invalid credentials")
     }
 
-    async updateUser(updateUserDto: UpdateUserDto): Promise<any> {
-        const authMeta = RequestContextMetadataService.getMetadata('AUTH_METADATA') as AuthLoginMetadata;
-        if (!!authMeta) {
-            try {
-                return await this.findOneByEmail(updateUserDto.email)
-                    .then((data) => {
-                        if (data) {
-                            return this.userModel.findByIdAndUpdate(
-                                { _id: data._id },
-                                {
-                                    email: updateUserDto.email,
-                                    name: updateUserDto.name
-                                },
-                                { new: true }).then(user => {
-                                    console.log('### User Updated ###', user.toObject({ versionKey: false }));
-                                    return user;
-                                });
-                        } else { 
-                            throw new UnauthorizedException();
-                        }
-                    });
-            } catch (e) {
-                console.log('error', e);
-            }
-        } else {
-            throw new UnauthorizedException();
-        }
+    const { password: _, ...result } = user.toObject()
+    return result
+  }
+
+  async login(user: any) {
+    const payload = {
+      sub: user._id,
+      email: user.email,
+      role: user.role,
     }
 
-    async validateUserByPassword(authCredentialsDto: AuthCredentialsDto) {
-        const userToAttempt: any = await this.findOneByEmail(authCredentialsDto.email);
-        if (!userToAttempt) throw new BadRequestException('Email not found !');
-        return new Promise((resolve, reject) => {
-            userToAttempt.checkPassword(authCredentialsDto.password, (err, isMatch) => {
-                if (err) {
-                    reject(new UnauthorizedException());
-                }
-                if (isMatch) {
-                    const payload: any = {
-                        token: this.createJwtPayload(userToAttempt),
-                    }
-                    const user = userToAttempt.toObject({ versionKey: false });
-                    if (user.emailVerified) {
-                        RequestContextMetadataService.setMetadata('AUTH_METADATA', user);
-                        resolve(payload);
-                    } else {
-                        reject(new UnauthorizedException('Please verify your email before login.'));
-                    }
-                } else {
-                    reject(new BadRequestException(`Password don't match`));
-                }
-            });
-        });
+    await this.auditService.createAuditLog({
+      action: "LOGIN",
+      userId: user._id,
+      module: "AUTH",
+      description: `User logged in: ${user.email}`,
+    })
+
+    return {
+      user,
+      accessToken: this.jwtService.sign(payload),
+    }
+  }
+
+  async register(createUserDto: CreateUserDto) {
+    const user = await this.usersService.create(createUserDto)
+
+    await this.auditService.createAuditLog({
+      action: "REGISTER",
+      userId: user._id,
+      module: "AUTH",
+      description: `New user registered: ${user.email}`,
+    })
+
+    const { password: _, ...result } = user.toObject()
+
+    return result
+  }
+
+  async requestPasswordReset(email: string) {
+    const user = await this.usersService.findByEmail(email)
+
+    if (!user) {
+      throw new BadRequestException("User not found")
     }
 
-    async findOneByEmail(email: string): Promise<User> {
-        return this.userModel.findOne({ email: email });
+    const resetToken = uuidv4()
+    const resetTokenExpiry = new Date()
+    resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1) // Token valid for 1 hour
+
+    await this.usersService.update(user._id, {
+      resetToken,
+      resetTokenExpiry,
+    })
+
+    await this.emailService.sendPasswordReset(user, resetToken)
+
+    await this.auditService.createAuditLog({
+      action: "PASSWORD_RESET_REQUEST",
+      userId: user._id,
+      module: "AUTH",
+      description: `Password reset requested for: ${user.email}`,
+    })
+
+    return { message: "Password reset email sent" }
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const user = await this.usersService.findByResetToken(token)
+
+    if (!user) {
+      throw new BadRequestException("Invalid or expired token")
     }
 
-    async getAllUsers() {
-        return this.userModel.find();
+    if (user.resetTokenExpiry < new Date()) {
+      throw new BadRequestException("Reset token has expired")
     }
 
-    async getUserFromAuth(): Promise<any> {
-        const authMeta = RequestContextMetadataService.getMetadata('AUTH_METADATA') as AuthLoginMetadata;
-        if (!!authMeta) {
-            const { email } = authMeta;
-            const user = await this.findOneByEmail(email).then(u => u.toObject({ versionKey: false }));
-            if (!user) {
-                throw new UnauthorizedException();
-            }
-            return user;
-        } else {
-            throw new UnauthorizedException();
-        }
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
+
+    await this.usersService.update(user._id, {
+      password: hashedPassword,
+      resetToken: null,
+      resetTokenExpiry: null,
+    })
+
+    await this.auditService.createAuditLog({
+      action: "PASSWORD_RESET",
+      userId: user._id,
+      module: "AUTH",
+      description: `Password reset completed for: ${user.email}`,
+    })
+
+    return { message: "Password reset successful" }
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const user = await this.usersService.findById(userId)
+
+    if (!user) {
+      throw new BadRequestException("User not found")
     }
 
-    async validateUserByJwt(payload: JwtPayload) {
-        let user = await this.findOneByEmail(payload.email).then(u => u.toObject({ versionKey: false }));
-        if (user) {
-            RequestContextMetadataService.setMetadata('AUTH_METADATA', user);
-            return user;
-        } else {
-            throw new UnauthorizedException();
-        }
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password)
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException("Current password is incorrect")
     }
 
-    createJwtPayload(user) {
-        let data: JwtPayload = {
-            _id: user._id,
-            roles: user.roles,
-            email: user.email
-        };
-        return this.jwtService.sign(data);
-    }
+    const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-    async verifyTokenByEmail(token: string) {
-        try {
-            return await this.tokenVerifyEmailModel.findOne({ tokenVerifyEmail: token })
-                .then((data) => {
-                    if (data) {
-                        return this.userModel.findByIdAndUpdate(
-                            { _id: data.userId },
-                            { emailVerified: true },
-                            { new: true }).then(() => {
-                                return true;
-                            });
-                    } else {
-                        return false;
-                    }
-                });
-        } catch (e) {
-            console.log('error', e);
-        }
-    }
+    await this.usersService.update(userId, {
+      password: hashedPassword,
+    })
 
+    await this.auditService.createAuditLog({
+      action: "PASSWORD_CHANGE",
+      userId: user._id,
+      module: "AUTH",
+      description: `Password changed for: ${user.email}`,
+    })
+
+    return { message: "Password changed successfully" }
+  }
 }
 

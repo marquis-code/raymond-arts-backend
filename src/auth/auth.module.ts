@@ -1,47 +1,35 @@
-import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { UserSchema, TokenVerifyEmailSchema , } from './user.model';
-import { JwtModule } from '@nestjs/jwt';
-import { PassportModule } from '@nestjs/passport';
-import { ConfigModule } from '../core/config/config.module';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
-import { JwtStrategy } from './jwt.strategy';
-import { MailerModule } from '@nestjs-modules/mailer';
-import { ConfigService } from '../core/config/config.service';
-import { SendEmailMiddleware } from '../core/middleware/send-email.middleware';
+import { Module } from "@nestjs/common"
+import { PassportModule } from "@nestjs/passport"
+import { JwtModule } from "@nestjs/jwt"
+import { ConfigModule, ConfigService } from "@nestjs/config"
+import { AuthService } from "./auth.service"
+import { AuthController } from "./auth.controller"
+import { UsersModule } from "../users/users.module"
+import { JwtStrategy } from "./strategies/jwt.strategy"
+import { LocalStrategy } from "./strategies/local.strategy"
+import { EmailModule } from "../email/email.module"
+import { AuditModule } from "../audit/audit.module"
 
 @Module({
   imports: [
-    MongooseModule.forFeature([
-      { name: 'User', schema: UserSchema },
-      { name: 'TokenVerifyEmail', schema: TokenVerifyEmailSchema }
-    ]),
-    PassportModule.register({ defaultStrategy: 'jwt', session: true }),
+    UsersModule,
+    PassportModule,
+    EmailModule,
+    AuditModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secretOrPrivateKey: configService.get('JWT_SECRET'),
-        signOptions: {
-          expiresIn: configService.get('EXPIRES_IN')
-        }
-      }),
       inject: [ConfigService],
-    }),
-    MailerModule.forRootAsync({
-      useFactory: () => ({
-        transport: {
-          host: 'smtp.gmail.com', port: 465, secure: true,
-          auth: { user: 'akunsejutacitatesting@gmail.com', pass: 'Qwerty@123' }
-        },
-        defaults: {
-          from: '"Api" <akunsejutacitatesting@gmail.com>',
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get("jwt.secret"),
+        signOptions: {
+          expiresIn: configService.get("jwt.expiresIn", "1d"),
         },
       }),
     }),
-    ConfigModule,
   ],
-  providers: [AuthService, JwtStrategy, SendEmailMiddleware],
-  controllers: [AuthController]
+  providers: [AuthService, JwtStrategy, LocalStrategy],
+  controllers: [AuthController],
+  exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule {}
+

@@ -1,43 +1,78 @@
-import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import { ConfigModule } from './core/config/config.module';
-import { ConfigService } from './core/config/config.service';
-import { AuthModule } from './auth/auth.module';
-import * as winston from 'winston';
-import { utilities as nestWinstonModuleUtilities, WinstonModule } from 'nest-winston';
-import { APP_GUARD } from '@nestjs/core';
-import { RolesGuard } from './core/guard/roles.guard';
-import { SeedsModule } from './seeds/seed.module';
+import { Module } from "@nestjs/common"
+import { ConfigModule, ConfigService } from "@nestjs/config"
+import { MongooseModule } from "@nestjs/mongoose"
+import { EventEmitterModule } from "@nestjs/event-emitter"
+import { ScheduleModule } from "@nestjs/schedule"
+import { ThrottlerModule } from "@nestjs/throttler"
+
+import { UsersModule } from "./users/users.module"
+import { ProductsModule } from "./products/products.module"
+import { SalesModule } from "./sales/sales.module"
+import { OrdersModule } from "./orders/orders.module"
+import { InventoryModule } from "./inventory/inventory.module"
+import { PaymentsModule } from "./payments/payments.module"
+import { TransactionsModule } from "./transactions/transactions.module"
+import { InvoicesModule } from "./invoices/invoices.module"
+import { PaymentLinksModule } from "./payment-links/payment-links.module"
+import { ContactsModule } from "./contacts/contacts.module"
+import { NotificationsModule } from "./notifications/notifications.module"
+import { AuditModule } from "./audit/audit.module"
+import { CloudinaryModule } from "./cloudinary/cloudinary.module"
+import { EmailModule } from "./email/email.module"
+import { AuthModule } from "./auth/auth.module"
 
 @Module({
   imports: [
-    ConfigModule,
+    // Configuration
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: `.env.${process.env.NODE_ENV || "development"}`,
+    }),
+
+    // Database
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
+      inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        uri: `${configService.get('DB_URL')}`,
+        uri: configService.get<string>("MONGODB_URI"),
         useNewUrlParser: true,
         useUnifiedTopology: true,
       }),
-      inject: [ConfigService]
     }),
+
+    // Event emitter for handling events across modules
+    EventEmitterModule.forRoot(),
+
+    // Scheduled tasks
+    ScheduleModule.forRoot(),
+
+    // Rate limiting
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        ttl: config.get("THROTTLE_TTL", 60),
+        limit: config.get("THROTTLE_LIMIT", 100),
+      }),
+    }),
+
+    // Application modules
     AuthModule,
-    WinstonModule,
-    SeedsModule,
-  ],
-  controllers: [],
-  providers: [
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
-    },
+    UsersModule,
+    ProductsModule,
+    SalesModule,
+    OrdersModule,
+    InventoryModule,
+    PaymentsModule,
+    TransactionsModule,
+    InvoicesModule,
+    PaymentLinksModule,
+    ContactsModule,
+    NotificationsModule,
+    AuditModule,
+    CloudinaryModule,
+    EmailModule,
   ],
 })
+export class AppModule {}
 
-export class AppModule {
-  static port: number | string;
-  constructor(private _configService: ConfigService) {
-    AppModule.port = this._configService.get('PORT');
-    console.log('AppModule.port', AppModule.port);
-  }
-}

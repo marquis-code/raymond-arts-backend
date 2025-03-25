@@ -1,32 +1,40 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-
-import { NestExpressApplication } from '@nestjs/platform-express';
-import { HttpExceptionFilter } from './core/filters/http.filter';
-import { FallbackExceptionFilter } from './core/filters/fallback.filter';
-import { RequestContextMiddleware } from './core/middleware/request-context.middleware';
+import { NestFactory } from "@nestjs/core"
+import { AppModule } from "./app.module"
+import { ValidationPipe } from "@nestjs/common"
+import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger"
+import * as cookieParser from "cookie-parser"
+import { ConfigService } from "@nestjs/config"
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.enableCors();
-  // app.setGlobalPrefix('api');
-  app.use(RequestContextMiddleware.rawExpressMiddleware);
-  app.useGlobalFilters(
-    new FallbackExceptionFilter(),
-    new HttpExceptionFilter()
-  );
+  const app = await NestFactory.create(AppModule)
+  const configService = app.get(ConfigService)
 
-  const options = new DocumentBuilder()
-    .setTitle('Api ')
-    .setDescription('The API description')
-    .setVersion('1.0')
+  // Global pipes
+  app.useGlobalPipes(new ValidationPipe({ transform: true }))
+
+  // Middleware
+  app.use(cookieParser())
+
+  // CORS
+  app.enableCors({
+    origin: configService.get("FRONTEND_URL"),
+    credentials: true,
+  })
+
+  // Swagger API documentation
+  const config = new DocumentBuilder()
+    .setTitle("Art E-commerce API")
+    .setDescription("API for managing art e-commerce platform")
+    .setVersion("1.0")
     .addBearerAuth()
-    .build();
+    .build()
+  const document = SwaggerModule.createDocument(app, config)
+  SwaggerModule.setup("api/docs", app, document)
 
-  const document = SwaggerModule.createDocument(app, options);
-  SwaggerModule.setup('docs', app, document);
-
-  await app.listen(AppModule.port || 5000);
+  // Start server
+  const port = configService.get("PORT") || 3000
+  await app.listen(port)
+  console.log(`Application is running on: ${await app.getUrl()}`)
 }
-bootstrap();
+bootstrap()
+
