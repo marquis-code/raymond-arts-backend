@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param, UseGuards, Request, Query, Patch } from "@nestjs/common"
-import type { OrdersService } from "./orders.service"
+import { OrdersService } from "./orders.service"
 import type { CreateOrderDto } from "./dto/create-order.dto"
 import type { UpdateOrderStatusDto } from "./dto/update-order-status.dto"
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard"
@@ -108,5 +108,8 @@ export class OrdersController {
     @Body() updateOrderStatusDto: UpdateOrderStatusDto,
     @Request() req,
   ) {
-    return this.ordersService.updateStatus(id, updateOrderStatusDto, req
+    return this.ordersService.updateStatus(id, updateOrderStatusDto, req)
+  }
+
+}
 

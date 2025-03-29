@@ -1,5 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common"
-import type { ConfigService } from "@nestjs/config"
+// import type { ConfigService } from "@nestjs/config"
+import { ConfigService } from "@nestjs/config"
 import * as nodemailer from "nodemailer"
 import * as handlebars from "handlebars"
 import * as fs from "fs"

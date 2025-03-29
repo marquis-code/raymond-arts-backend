@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from "@nestjs/common"
-import type { ContactsService } from "./contacts.service"
+import { ContactsService } from "./contacts.service"
 import type { CreateContactDto } from "./dto/create-contact.dto"
 import type { UpdateContactDto } from "./dto/update-contact.dto"
 import type { AddInteractionDto } from "./dto/add-interaction.dto"

@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
-import { Document, Schema as MongooseSchema } from "mongoose"
+import { Document, Schema as MongooseSchema, Types } from "mongoose"
 import { OrderStatus } from "../enums/order-status.enum"
 import { PaymentStatus } from "../enums/payment-status.enum"
 
@@ -57,7 +57,8 @@ export class Order extends Document {
   paymentStatus: PaymentStatus
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: "Transaction" })
-  transaction: MongooseSchema.Types.ObjectId
+  transaction: Types.ObjectId 
+  // transaction: MongooseSchema.Types.ObjectId
 
   @Prop({
     type: {
@@ -118,8 +119,9 @@ export class Order extends Document {
   statusHistory: Array<{
     status: OrderStatus
     date: Date
-    notes: string
-    userId: MongooseSchema.Types.ObjectId
+    notes: string,
+    userId: Types.ObjectId
+    // userId: MongooseSchema.Types.ObjectId
   }>
 
   @Prop()
@@ -150,7 +152,10 @@ export class Order extends Document {
 export const OrderSchema = SchemaFactory.createForClass(Order)
 
 // Virtual for calculating order age
-OrderSchema.virtual("age").get(function () {
-  return Math.floor((Date.now() - this.createdAt.getTime()) / (1000 * 60 * 60 * 24))
-})
+// OrderSchema.virtual("age").get(function () {
+//   return Math.floor((Date.now() - this.createdAt.getTime()) / (1000 * 60 * 60 * 24))
+// })
+OrderSchema.virtual("age").get(function (this: any) {
+  return Math.floor((Date.now() - (this.createdAt ? this.createdAt.getTime() : Date.now())) / (1000 * 60 * 60 * 24));
+});
 

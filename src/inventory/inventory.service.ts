@@ -6,7 +6,9 @@ import type { CreateInventoryDto } from "./dto/create-inventory.dto"
 import type { UpdateInventoryDto } from "./dto/update-inventory.dto"
 import type { InventoryHistoryDto } from "./dto/inventory-history.dto"
 import type { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
-import type { AuditService } from "../audit/audit.service"
+// import type { AuditService } from "../audit/audit.service"
+import { AuditService } from "../audit/audit.service"
+import { Types } from "mongoose"
 
 @Injectable()
 export class InventoryService {
@@ -81,7 +83,7 @@ export class InventoryService {
           action,
           quantity: quantityChange,
           notes: `Manual adjustment`,
-          userId,
+          userId: new Types.ObjectId(userId),
         })
 
         // Log audit
@@ -124,7 +126,7 @@ export class InventoryService {
       action: historyDto.action,
       quantity: historyDto.quantity,
       notes: historyDto.notes,
-      userId,
+      userId: new Types.ObjectId(userId),
     })
 
     // Log audit
@@ -164,7 +166,7 @@ export class InventoryService {
         action: "REMOVE",
         quantity,
         notes,
-        userId,
+        userId: new Types.ObjectId(userId),
       })
 
       await inventory.save()
@@ -196,7 +198,7 @@ export class InventoryService {
         action: "ADD",
         quantity,
         notes,
-        userId,
+        userId: new Types.ObjectId(userId),
       })
 
       await inventory.save()

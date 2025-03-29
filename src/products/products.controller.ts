@@ -13,7 +13,7 @@ import {
   UploadedFile,
 } from "@nestjs/common"
 import { FileInterceptor } from "@nestjs/platform-express"
-import type { ProductsService } from "./products.service"
+import { ProductsService } from "./products.service"
 import type { CreateProductDto } from "./dto/create-product.dto"
 import type { UpdateProductDto } from "./dto/update-product.dto"
 import type { CreateCategoryDto } from "./dto/create-category.dto"

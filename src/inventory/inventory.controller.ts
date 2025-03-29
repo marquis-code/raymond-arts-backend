@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Query, UseGuards, Request } from "@nestjs/common"
-import type { InventoryService } from "./inventory.service"
+import { InventoryService } from "./inventory.service"
 import type { CreateInventoryDto } from "./dto/create-inventory.dto"
 import type { UpdateInventoryDto } from "./dto/update-inventory.dto"
 import type { InventoryHistoryDto } from "./dto/inventory-history.dto"

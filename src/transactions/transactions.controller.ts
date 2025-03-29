@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from "@nestjs/common"
-import type { TransactionsService } from "./transactions.service"
+import { TransactionsService } from "./transactions.service"
 import type { CreateTransactionDto } from "./dto/create-transaction.dto"
 import type { UpdateTransactionDto } from "./dto/update-transaction.dto"
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard"

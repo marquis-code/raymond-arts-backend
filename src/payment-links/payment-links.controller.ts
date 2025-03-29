@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from "@nestjs/common"
-import type { PaymentLinksService } from "./payment-links.service"
+import { PaymentLinksService } from "./payment-links.service"
 import type { CreatePaymentLinkDto } from "./dto/create-payment-link.dto"
 import type { UpdatePaymentLinkDto } from "./dto/update-payment-link.dto"
 import type { UsePaymentLinkDto } from "./dto/use-payment-link.dto"

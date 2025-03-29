@@ -1,5 +1,5 @@
 import { Controller, Post, Body, UseGuards, Request, HttpCode, HttpStatus } from "@nestjs/common"
-import type { PaymentsService } from "./payments.service"
+import { PaymentsService } from "./payments.service"
 import type { ProcessPaymentDto } from "./dto/process-payment.dto"
 import type { VerifyPaymentDto } from "./dto/verify-payment.dto"
 import type { FlutterwaveWebhookDto } from "./dto/flutterwave-webhook.dto"

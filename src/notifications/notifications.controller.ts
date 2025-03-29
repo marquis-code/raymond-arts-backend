@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from "@nestjs/common"
-import type { NotificationsService } from "./notifications.service"
+import { NotificationsService } from "./notifications.service"
 import type { CreateNotificationDto } from "./dto/create-notification.dto"
 import type { UpdateNotificationDto } from "./dto/update-notification.dto"
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard"

@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Param, UseGuards } from "@nestjs/common"
-import type { AuditService } from "./audit.service"
+import { AuditService } from "./audit.service"
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard"
 import { RolesGuard } from "../auth/guards/roles.guard"
 import { Roles } from "../auth/decorators/roles.decorator"
@@ -41,9 +41,6 @@ export class AuditController {
   findByModule(
     @Param('module') module: string,
     @Query() paginationDto: PaginationDto,
-  ) {
-    return this.auditService.findByModule(module, paginationDto  paginationDto: PaginationDto,
-  ) 
-    return this.auditService.findByModule(module, paginationDto);
-}
+  ) { return this.auditService.findByModule(module, paginationDto) }
 
+}

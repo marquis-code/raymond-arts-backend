@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from "@nestjs/common"
-import type { InvoicesService } from "./invoices.service"
+import { InvoicesService } from "./invoices.service"
 import type { CreateInvoiceDto } from "./dto/create-invoice.dto"
 import type { UpdateInvoiceDto } from "./dto/update-invoice.dto"
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard"

@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from "@nestjs/common"
-import type { SalesService } from "./sales.service"
+import { SalesService } from "./sales.service"
 import type { CreateSaleDto } from "./dto/create-sale.dto"
 import type { UpdateSaleDto } from "./dto/update-sale.dto"
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard"

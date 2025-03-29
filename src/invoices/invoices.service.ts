@@ -6,10 +6,11 @@ import type { CreateInvoiceDto } from "./dto/create-invoice.dto"
 import type { UpdateInvoiceDto } from "./dto/update-invoice.dto"
 import { InvoiceStatus } from "./enums/invoice-status.enum"
 import type { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
-import type { UsersService } from "../users/users.service"
-import type { EmailService } from "../email/email.service"
-import type { AuditService } from "../audit/audit.service"
-import type { NotificationsService } from "../notifications/notifications.service"
+import { UsersService } from "../users/users.service"
+import { EmailService } from "../email/email.service"
+import { AuditService } from "../audit/audit.service"
+import { NotificationsService } from "../notifications/notifications.service"
+import { Types } from "mongoose"
 
 @Injectable()
 export class InvoicesService {
@@ -234,8 +235,11 @@ export class InvoicesService {
     invoice.status = status
 
     // Update transaction reference if provided
+    // if (transactionId) {
+    //   invoice.transaction = transactionId
+    // }
     if (transactionId) {
-      invoice.transaction = transactionId
+      invoice.transaction = new Types.ObjectId(transactionId) // Convert string to ObjectId
     }
 
     // Update paid date if status is PAID

@@ -6,13 +6,14 @@ import type { CreateOrderDto } from "./dto/create-order.dto"
 import type { UpdateOrderStatusDto } from "./dto/update-order-status.dto"
 import { OrderStatus } from "./enums/order-status.enum"
 import { PaymentStatus } from "./enums/payment-status.enum"
-import type { ProductsService } from "../products/products.service"
-import type { InventoryService } from "../inventory/inventory.service"
-import type { UsersService } from "../users/users.service"
-import type { EmailService } from "../email/email.service"
-import type { AuditService } from "../audit/audit.service"
-import type { NotificationsService } from "../notifications/notifications.service"
+import { ProductsService } from "../products/products.service"
+import { InventoryService } from "../inventory/inventory.service"
+import { UsersService } from "../users/users.service"
+import { EmailService } from "../email/email.service"
+import { AuditService } from "../audit/audit.service"
+import { NotificationsService } from "../notifications/notifications.service"
 import type { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
+import { Types } from "mongoose"
 
 @Injectable()
 export class OrdersService {
@@ -249,7 +250,7 @@ export class OrdersService {
       status: newStatus,
       date: new Date(),
       notes: updateOrderStatusDto.notes || `Status changed from ${oldStatus} to ${newStatus}`,
-      userId,
+      userId: new Types.ObjectId(userId),
     })
 
     // Update tracking information if provided
@@ -335,7 +336,7 @@ export class OrdersService {
 
     // Update payment status
     order.paymentStatus = paymentStatus
-    order.transaction = transactionId
+   order.transaction = new Types.ObjectId(transactionId)
 
     // If payment is successful, update order status to processing
     if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
@@ -346,7 +347,8 @@ export class OrdersService {
         status: OrderStatus.PROCESSING,
         date: new Date(),
         notes: "Payment received, order processing",
-        userId,
+        userId: new Types.ObjectId(userId),
+        // userId,
       })
     }
 

@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
-import { Document, Schema as MongooseSchema } from "mongoose"
+import { Types, Document, Schema as MongooseSchema } from "mongoose"
 import { InvoiceStatus } from "../enums/invoice-status.enum"
 
 @Schema({
@@ -52,8 +52,10 @@ export class Invoice extends Document {
   @Prop({ required: true, enum: InvoiceStatus, default: InvoiceStatus.PENDING })
   status: InvoiceStatus
 
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: "Transaction" })
-  transaction: MongooseSchema.Types.ObjectId
+  // @Prop({ type: MongooseSchema.Types.ObjectId, ref: "Transaction" })
+  // transaction: MongooseSchema.Types.ObjectId
+@Prop({ type: Types.ObjectId, ref: "Transaction" })
+transaction: Types.ObjectId
 
   @Prop({ required: true })
   dueDate: Date

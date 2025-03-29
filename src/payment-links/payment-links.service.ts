@@ -7,11 +7,12 @@ import type { UpdatePaymentLinkDto } from "./dto/update-payment-link.dto"
 import type { UsePaymentLinkDto } from "./dto/use-payment-link.dto"
 import { PaymentLinkStatus } from "./enums/payment-link-status.enum"
 import type { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
-import type { TransactionsService } from "../transactions/transactions.service"
+import { TransactionsService } from "../transactions/transactions.service"
 import { TransactionType } from "../transactions/enums/transaction-type.enum"
 import { TransactionStatus } from "../transactions/enums/transaction-status.enum"
-import type { AuditService } from "../audit/audit.service"
-import type { NotificationsService } from "../notifications/notifications.service"
+import { AuditService } from "../audit/audit.service"
+import { NotificationsService } from "../notifications/notifications.service"
+import { Types } from "mongoose"
 
 @Injectable()
 export class PaymentLinksService {
@@ -252,8 +253,13 @@ export class PaymentLinksService {
       paymentLink.transactions = []
     }
 
-    paymentLink.transactions.push(transaction._id)
-    await paymentLink.save()
+    // paymentLink.transactions.push(transaction._id)
+    // // In payment-links.service.ts
+    // paymentLink.transactions.push(toObjectId(transaction._id.toString()));
+    // await paymentLink.save()
+    // In your service method, when pushing the transaction ID
+      paymentLink.transactions.push(new Types.ObjectId(transaction._id.toString()))  // Convert string to ObjectId
+      await paymentLink.save()
 
     // If not reusable and limit reached, deactivate
     if (!paymentLink.isReusable && paymentLink.usageLimit > 0 && paymentLink.usageCount >= paymentLink.usageLimit) {

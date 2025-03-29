@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
-import { Document, Schema as MongooseSchema } from "mongoose"
+import { Document, Schema as MongooseSchema, Types } from "mongoose"
 import { PaymentLinkStatus } from "../enums/payment-link-status.enum"
 
 @Schema({
@@ -44,7 +44,8 @@ export class PaymentLink extends Document {
   usageCount: number
 
   @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: "Transaction" }] })
-  transactions: MongooseSchema.Types.ObjectId[]
+  transactions: Types.ObjectId[]
+  // transactions: MongooseSchema.Types.ObjectId[]
 
   @Prop({ type: Object })
   metadata: Record<string, any>
@@ -74,7 +75,13 @@ PaymentLinkSchema.virtual("isLimitReached").get(function () {
 })
 
 // Virtual for checking if link is usable
-PaymentLinkSchema.virtual("isUsable").get(function () {
-  return this.status === PaymentLinkStatus.ACTIVE && !this.isExpired && !this.isLimitReached
-})
+// PaymentLinkSchema.virtual("isUsable").get(function () {
+//   return this.status === PaymentLinkStatus.ACTIVE && !this.isExpired && !this.isLimitReached
+// })
 
+// In payment-links/schemas/payment-link.schema.ts
+PaymentLinkSchema.virtual("isUsable").get(function (this: any) {
+  return this.status === PaymentLinkStatus.ACTIVE && 
+         !(this.expiresAt && new Date() > new Date(this.expiresAt)) && 
+         !(this.usageLimit > 0 && this.usageCount >= this.usageLimit);
+});
