@@ -11,6 +11,7 @@ import {
   Request,
   UseInterceptors,
   UploadedFile,
+  BadRequestException
 } from "@nestjs/common"
 import { FileInterceptor } from "@nestjs/platform-express"
 import { ProductsService } from "./products.service"
@@ -59,6 +60,14 @@ export class ProductsController {
   findAll(@Query() paginationDto: PaginationDto) {
     return this.productsService.findAllProducts(paginationDto);
   }
+
+  @Get('categories')
+  @ApiOperation({ summary: 'Get all categories' })
+  @ApiResponse({ status: 200, description: 'Categories retrieved successfully' })
+  findAllCategories(@Query() paginationDto: PaginationDto) {
+    return this.productsService.findAllCategories(paginationDto);
+  }
+
 
   @Get('featured')
   @ApiOperation({ summary: 'Get featured products' })
@@ -177,25 +186,38 @@ export class ProductsController {
     return this.productsService.removeProductImage(id, imageUrl, req.user.sub)
   }
 
-  // Category endpoints
-  @Post("categories")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: "Create a new category" })
-  @ApiResponse({ status: 201, description: "Category created successfully" })
-  @ApiResponse({ status: 400, description: "Bad request" })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
-  createCategory(@Body() createCategoryDto: CreateCategoryDto, @Request() req) {
-    return this.productsService.createCategory(createCategoryDto, req.user.sub)
-  }
 
-  @Get('categories')
-  @ApiOperation({ summary: 'Get all categories' })
-  @ApiResponse({ status: 200, description: 'Categories retrieved successfully' })
-  findAllCategories(@Query() paginationDto: PaginationDto) {
-    return this.productsService.findAllCategories(paginationDto);
+@Post("categories")
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
+@ApiBearerAuth()
+@ApiOperation({ summary: "Create a new category" })
+@ApiResponse({ status: 201, description: "Category created successfully" })
+@ApiResponse({ status: 400, description: "Bad request" })
+@ApiResponse({ status: 401, description: "Unauthorized" })
+createCategory(@Body() createCategoryDtoInput: any, @Request() req) {
+  console.log('Controller received raw input:', createCategoryDtoInput);
+  
+  // Extract data from the function object
+  const createCategoryDto = {
+    name: createCategoryDtoInput.name,
+    description: createCategoryDtoInput.description,
+    image: createCategoryDtoInput.image,
+    parent: createCategoryDtoInput.parent,
+    isActive: createCategoryDtoInput.isActive,
+    order: createCategoryDtoInput.order
+  };
+  
+  console.log('Extracted category data:', createCategoryDto);
+  
+  // Validate required fields
+  if (!createCategoryDto.name) {
+    throw new BadRequestException('Category name is required');
   }
+  
+  return this.productsService.createCategory(createCategoryDto, req.user.sub);
+}
+
 
   @Get("categories/tree")
   @ApiOperation({ summary: "Get category tree" })
