@@ -6,6 +6,7 @@ import { ScheduleModule } from "@nestjs/schedule"
 import { ThrottlerModule } from "@nestjs/throttler"
 
 import { UsersModule } from "./users/users.module"
+import { MulterModule } from '@nestjs/platform-express';
 import { ProductsModule } from "./products/products.module"
 import { SalesModule } from "./sales/sales.module"
 import { OrdersModule } from "./orders/orders.module"
@@ -20,13 +21,20 @@ import { AuditModule } from "./audit/audit.module"
 import { CloudinaryModule } from "./cloudinary/cloudinary.module"
 import { EmailModule } from "./email/email.module"
 import { AuthModule } from "./auth/auth.module"
+import { ImagesModule } from "./images/images.module"
+import { UploadModule } from "./upload/upload.module"
 
 @Module({
   imports: [
     // Configuration
+    MulterModule.register({
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit
+      },
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
+      envFilePath: '.env'
     }),
 
     // Database
@@ -58,6 +66,8 @@ import { AuthModule } from "./auth/auth.module"
     }),
 
     // Application modules
+    UploadModule,
+    ImagesModule,
     AuthModule,
     UsersModule,
     ProductsModule,
@@ -72,7 +82,7 @@ import { AuthModule } from "./auth/auth.module"
     NotificationsModule,
     AuditModule,
     CloudinaryModule,
-    EmailModule,
+    EmailModule
   ],
 })
 export class AppModule {}
