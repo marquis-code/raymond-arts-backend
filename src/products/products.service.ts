@@ -196,19 +196,29 @@ export class ProductsService {
   async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
     // Validate category if provided
     if (updateProductDto.category) {
-      const categoryExists = await this.categoryModel.findById(updateProductDto.category).exec()
+      const categoryExists = await this.categoryModel.findById(updateProductDto.category);
       if (!categoryExists) {
-        throw new BadRequestException("Category not found")
+        throw new BadRequestException("Category not found");
       }
     }
-
-    const product = await this.productModel.findById(id).exec()
+  
+    // First check if product exists
+    const product = await this.productModel.findById(id);
     if (!product) {
-      throw new NotFoundException(`Product with ID ${id} not found`)
+      throw new NotFoundException(`Product with ID ${id} not found`);
     }
-
-    const updatedProduct = await this.productModel.findByIdAndUpdate(id, updateProductDto, { new: true }).exec()
-
+  
+    // Update the product using simple document manipulation
+    // This avoids using methods that might still rely on callbacks internally
+    Object.keys(updateProductDto).forEach(key => {
+      if (updateProductDto[key] !== undefined) {
+        product[key] = updateProductDto[key];
+      }
+    });
+    
+    // Save the updated document
+    const updatedProduct = await product.save();
+  
     // Log audit
     await this.auditService.createAuditLog({
       action: "UPDATE",
@@ -216,10 +226,103 @@ export class ProductsService {
       module: "PRODUCTS",
       description: `Product updated: ${product.name}`,
       changes: JSON.stringify(updateProductDto),
-    })
-
-    return updatedProduct
+    });
+  
+    return updatedProduct;
   }
+
+  // async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
+  //   // Validate category if provided
+  //   if (updateProductDto.category) {
+  //     const categoryExists = await this.categoryModel.findById(updateProductDto.category);
+  //     if (!categoryExists) {
+  //       throw new BadRequestException("Category not found");
+  //     }
+  //   }
+  
+  //   const product = await this.productModel.findById(id);
+  //   if (!product) {
+  //     throw new NotFoundException(`Product with ID ${id} not found`);
+  //   }
+  
+  //   // Use updateOne instead of findByIdAndUpdate
+  //   await this.productModel.updateOne({ _id: id }, updateProductDto);
+    
+  //   // Fetch the updated product
+  //   const updatedProduct = await this.productModel.findById(id);
+  
+  //   // Log audit
+  //   await this.auditService.createAuditLog({
+  //     action: "UPDATE",
+  //     userId,
+  //     module: "PRODUCTS",
+  //     description: `Product updated: ${product.name}`,
+  //     changes: JSON.stringify(updateProductDto),
+  //   });
+  
+  //   return updatedProduct;
+  // }
+
+  // async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
+  //   // Validate category if provided
+  //   if (updateProductDto.category) {
+  //     const categoryExists = await this.categoryModel.findById(updateProductDto.category).exec()
+  //     if (!categoryExists) {
+  //       throw new BadRequestException("Category not found")
+  //     }
+  //   }
+
+  //   const product = await this.productModel.findById(id).exec()
+  //   if (!product) {
+  //     throw new NotFoundException(`Product with ID ${id} not found`)
+  //   }
+
+  //   const updatedProduct = await this.productModel.findByIdAndUpdate(id, updateProductDto, { new: true }).exec()
+
+  //   // Log audit
+  //   await this.auditService.createAuditLog({
+  //     action: "UPDATE",
+  //     userId,
+  //     module: "PRODUCTS",
+  //     description: `Product updated: ${product.name}`,
+  //     changes: JSON.stringify(updateProductDto),
+  //   })
+
+  //   return updatedProduct
+  // }
+
+  // async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
+  //   // Validate category if provided
+  //   if (updateProductDto.category) {
+  //     const categoryExists = await this.categoryModel.findById(updateProductDto.category).exec();
+  //     if (!categoryExists) {
+  //       throw new BadRequestException("Category not found");
+  //     }
+  //   }
+  
+  //   const product = await this.productModel.findById(id).exec();
+  //   if (!product) {
+  //     throw new NotFoundException(`Product with ID ${id} not found`);
+  //   }
+  
+  //   // Remove the .exec() call since findByIdAndUpdate returns a promise
+  //   const updatedProduct = await this.productModel.findByIdAndUpdate(
+  //     id, 
+  //     updateProductDto, 
+  //     { new: true }
+  //   );
+  
+  //   // Log audit
+  //   await this.auditService.createAuditLog({
+  //     action: "UPDATE",
+  //     userId,
+  //     module: "PRODUCTS",
+  //     description: `Product updated: ${product.name}`,
+  //     changes: JSON.stringify(updateProductDto),
+  //   });
+  
+  //   return updatedProduct;
+  // }
 
   async removeProduct(id: string, userId: string): Promise<Product> {
     const product = await this.productModel.findById(id).exec()
