@@ -44,6 +44,9 @@ export class Order extends Document {
   @Prop({ required: true, min: 0 })
   tax: number
 
+  @Prop({ required: true, min: 0, default: 2.5 })
+  taxRate: number;
+
   @Prop({ required: true, min: 0 })
   shipping: number
 

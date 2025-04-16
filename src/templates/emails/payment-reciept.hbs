@@ -1,0 +1,68 @@
+{{#> layout}}
+  <div class="hero animate-fade-in">
+    <img src="{{siteUrl}}/images/payment-receipt-banner.jpg" alt="Payment Receipt" class="hero-image">
+    <div class="hero-overlay">
+      <h1 class="hero-title">Payment Receipt</h1>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.1s;">
+    <p>Dear {{user.firstName}},</p>
+    
+    <p>Thank you for your payment to Raymond Arts. This email confirms that your payment has been received and processed successfully.</p>
+    
+    <div class="summary-box">
+      <h2 style="margin-top: 0;">Payment Details</h2>
+      <div class="summary-row">
+        <span>Transaction ID:</span>
+        <span><strong>{{payment.transactionId}}</strong></span>
+      </div>
+      <div class="summary-row">
+        <span>Payment Date:</span>
+        <span>{{formatDate payment.createdAt}}</span>
+      </div>
+      <div class="summary-row">
+        <span>Payment Method:</span>
+        <span>{{payment.paymentMethod}}</span>
+      </div>
+      <div class="summary-row">
+        <span>Amount:</span>
+        <span>{{formatCurrency payment.amount}}</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.2s;">
+    <h2>Payment Applied To</h2>
+    
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Invoice/Order</th>
+          <th>Date</th>
+          <th>Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Invoice #{{payment.invoice.invoiceNumber}}</td>
+          <td>{{formatDate payment.invoice.createdAt}}</td>
+          <td>{{formatCurrency payment.amount}}</td>
+        </tr>
+      </tbody>
+    </table>
+    
+    <div class="button-container">
+      <a href="{{siteUrl}}/account/payments" class="button">View Payment History</a>
+    </div>
+    
+    <p>If you have any questions about this payment, please contact our billing department at {{shopEmail}} or call us at {{shopPhone}}.</p>
+    
+    <p>Thank you for your business!</p>
+    
+    <p>
+      Warm regards,<br>
+      The Raymond Arts Team
+    </p>
+  </div>
+{{/layout}}

@@ -1,0 +1,76 @@
+{{#> layout}}
+  <div class="hero animate-fade-in">
+    <img src="{{siteUrl}}/images/shipping-confirmation-banner.jpg" alt="Shipping Confirmation" class="hero-image">
+    <div class="hero-overlay">
+      <h1 class="hero-title">Your Order Has Shipped!</h1>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.1s;">
+    <p>Dear {{user.firstName}},</p>
+    
+    <p>Great news! Your Raymond Arts order is on its way to you. We've carefully packaged your artistic items and they're now in transit.</p>
+    
+    <div class="summary-box">
+      <h2 style="margin-top: 0;">Shipping Details</h2>
+      <div class="summary-row">
+        <span>Order Number:</span>
+        <span><strong>{{order.orderNumber}}</strong></span>
+      </div>
+      <div class="summary-row">
+        <span>Shipping Date:</span>
+        <span>{{formatDate order.shippedAt}}</span>
+      </div>
+      <div class="summary-row">
+        <span>Tracking Number:</span>
+        <span>{{trackingNumber}}</span>
+      </div>
+      <div class="summary-row">
+        <span>Estimated Delivery:</span>
+        <span>{{estimatedDelivery}}</span>
+      </div>
+    </div>
+    
+    <div class="button-container">
+      <a href="{{trackingUrl}}" class="button">Track Your Package</a>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.2s;">
+    <h2>Items Shipped</h2>
+    
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Qty</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each order.items}}
+          <tr>
+            <td>{{product.name}}</td>
+            <td>{{quantity}}</td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    
+    <h2>Shipping Address</h2>
+    <p>
+      {{order.shippingAddress.firstName}} {{order.shippingAddress.lastName}}<br>
+      {{order.shippingAddress.address}}<br>
+      {{order.shippingAddress.city}}, {{order.shippingAddress.state}} {{order.shippingAddress.postalCode}}<br>
+      {{order.shippingAddress.country}}
+    </p>
+    
+    <p>If you have any questions about your shipment, please contact our customer service team at {{shopEmail}} or call us at {{shopPhone}}.</p>
+    
+    <p>We hope you enjoy your Raymond Arts creations!</p>
+    
+    <p>
+      Warm regards,<br>
+      The Raymond Arts Team
+    </p>
+  </div>
+{{/layout}}

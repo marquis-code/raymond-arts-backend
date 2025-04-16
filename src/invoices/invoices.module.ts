@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common"
+import { Module, forwardRef } from "@nestjs/common"
 import { MongooseModule } from "@nestjs/mongoose"
 import { InvoicesService } from "./invoices.service"
 import { InvoicesController } from "./invoices.controller"
@@ -6,6 +6,7 @@ import { Invoice, InvoiceSchema } from "./schemas/invoice.schema"
 import { UsersModule } from "../users/users.module"
 import { EmailModule } from "../email/email.module"
 import { AuditModule } from "../audit/audit.module"
+import { OrdersModule } from '../orders/orders.module';
 import { NotificationsModule } from "../notifications/notifications.module"
 
 @Module({
@@ -15,6 +16,7 @@ import { NotificationsModule } from "../notifications/notifications.module"
     EmailModule,
     AuditModule,
     NotificationsModule,
+    forwardRef(() => OrdersModule),
   ],
   controllers: [InvoicesController],
   providers: [InvoicesService],

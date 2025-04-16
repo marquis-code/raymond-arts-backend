@@ -1,0 +1,58 @@
+{{#> layout}}
+  <div class="hero animate-fade-in">
+    <img src="{{siteUrl}}/images/abandoned-cart-banner.jpg" alt="Your Cart is Waiting" class="hero-image">
+    <div class="hero-overlay">
+      <h1 class="hero-title">Your Art Selections Are Waiting</h1>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.1s;">
+    <p>Dear {{user.firstName}},</p>
+    
+    <p>We noticed you left some beautiful art pieces in your shopping cart. Your selections are still saved and waiting for you to complete your purchase.</p>
+    
+    <div class="button-container">
+      <a href="{{cartUrl}}" class="button">Return to Your Cart</a>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.2s;">
+    <h2>Your Saved Items</h2>
+    
+    {{#each cart.items}}
+      <div class="product-card">
+        <img src="{{product.images.[0]}}" alt="{{product.name}}" class="product-image">
+        <div class="product-details">
+          <h3 class="product-name">{{product.name}}</h3>
+          <p class="product-price">{{formatCurrency product.price}} × {{quantity}}</p>
+        </div>
+      </div>
+    {{/each}}
+    
+    <div class="summary-box">
+      <div class="summary-row">
+        <span>Subtotal:</span>
+        <span>{{formatCurrency cart.subtotal}}</span>
+      </div>
+    </div>
+    
+    <p>These items are popular and may sell out soon. Complete your purchase now to ensure you don't miss out on these unique artistic creations.</p>
+    
+    <div class="button-container">
+      <a href="{{cartUrl}}" class="button">Complete Your Purchase</a>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.3s;">
+    <h2>Need Help?</h2>
+    
+    <p>If you have any questions about the items in your cart or need assistance with your purchase, our team is here to help. Contact us at {{shopEmail}} or call us at {{shopPhone}}.</p>
+    
+    <p>Thank you for considering Raymond Arts for your artistic needs. We hope to see you back soon!</p>
+    
+    <p>
+      Warm regards,<br>
+      The Raymond Arts Team
+    </p>
+  </div>
+{{/layout}}

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common"
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from "@nestjs/common"
 import { InjectModel } from "@nestjs/mongoose"
 import type { Model } from "mongoose"
 import { Order } from "./schemas/order.schema"
@@ -12,6 +12,8 @@ import { UsersService } from "../users/users.service"
 import { EmailService } from "../email/email.service"
 import { AuditService } from "../audit/audit.service"
 import { NotificationsService } from "../notifications/notifications.service"
+import { InvoicesService } from "../invoices/invoices.service"
+import { ShippingTaxService } from "../shipping-tax/shipping-tax.service"
 import type { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
 import { Types } from "mongoose"
 
@@ -21,10 +23,12 @@ export class OrdersService {
     @InjectModel(Order.name) private orderModel: Model<Order>,
     private productsService: ProductsService,
     private inventoryService: InventoryService,
+    @Inject(forwardRef(() => InvoicesService)) private invoiceService: InvoicesService,
     private usersService: UsersService,
     private emailService: EmailService,
     private auditService: AuditService,
     private notificationsService: NotificationsService,
+    private shippingTaxService: ShippingTaxService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto, userId: string): Promise<Order> {
@@ -70,10 +74,20 @@ export class OrdersService {
       subtotal += total
     }
 
-    // Calculate tax and shipping
-    const tax = subtotal * 0.1 // 10% tax
-    const shipping = subtotal > 100 ? 0 : 10 // Free shipping over $100
-    const total = subtotal + tax + shipping
+    // Get country code from shipping address
+    const countryCode = createOrderDto.shippingAddress.country || 'DEFAULT'
+    
+    // Get shipping rate based on country
+    const shippingRate = await this.shippingTaxService.getShippingRate(countryCode)
+    
+    // Get VAT rate based on country
+    const vatRate = await this.shippingTaxService.getVatRate(countryCode)
+    
+    // Calculate VAT amount (as percentage of subtotal)
+    const vatAmount = subtotal * (vatRate / 100)
+    
+    // Calculate total with shipping and VAT
+    const total = subtotal + shippingRate + vatAmount
 
     // Create order
     const newOrder = new this.orderModel({
@@ -81,8 +95,9 @@ export class OrdersService {
       customer: userId,
       items: orderItems,
       subtotal,
-      tax,
-      shipping,
+      tax: vatAmount,
+      taxRate: vatRate,
+      shipping: shippingRate,
       total,
       status: OrderStatus.PENDING,
       paymentStatus: PaymentStatus.PENDING,
@@ -105,6 +120,9 @@ export class OrdersService {
     for (const item of createOrderDto.items) {
       await this.inventoryService.reduceStock(item.product, item.quantity, userId, `Order #${orderNumber}`)
     }
+
+    // Create invoice automatically
+    await this.createInvoiceFromOrder(savedOrder, user._id.toString())
 
     // Send email notification
     await this.emailService.sendOrderConfirmation(savedOrder, user)
@@ -136,6 +154,159 @@ export class OrdersService {
 
     return savedOrder
   }
+
+  /**
+   * Creates an invoice from an order
+   */
+  private async createInvoiceFromOrder(order: Order, userId: string): Promise<void> {
+    // Map order items to invoice items
+    const invoiceItems = order.items.map(item => ({
+      description: `Product ID: ${item.product}`,
+      quantity: item.quantity,
+      price: item.price
+    }))
+
+    // Add shipping as an invoice item
+    invoiceItems.push({
+      description: 'Shipping and Handling',
+      quantity: 1,
+      price: order.shipping
+    })
+
+    // Set due date to 14 days from now
+    const dueDate = new Date()
+    dueDate.setDate(dueDate.getDate() + 14)
+
+    // Create invoice using InvoiceService
+    await this.invoiceService.create({
+      customer: order.customer.toString(),
+      order: order._id.toString(),
+      items: invoiceItems,
+      dueDate: dueDate.toISOString(),
+      notes: `Invoice for order #${order.orderNumber}. Includes VAT at ${order.taxRate}%`,
+      billingAddress: order.billingAddress
+    }, userId)
+  }
+
+
+  // async create(createOrderDto: CreateOrderDto, userId: string): Promise<Order> {
+  //   // Validate user
+  //   const user = await this.usersService.findById(userId)
+
+  //   // Generate order number
+  //   const orderNumber = this.generateOrderNumber()
+
+  //   // Process order items
+  //   const orderItems = []
+  //   let subtotal = 0
+
+  //   for (const item of createOrderDto.items) {
+  //     // Get product details
+  //     const product = await this.productsService.findProductById(item.product)
+
+  //     // Check if product is available
+  //     if (!product.isAvailable) {
+  //       throw new BadRequestException(`Product ${product.name} is not available`)
+  //     }
+
+  //     // Check inventory
+  //     const hasStock = await this.inventoryService.checkStock(item.product, item.quantity)
+
+  //     if (!hasStock) {
+  //       throw new BadRequestException(`Not enough stock for ${product.name}`)
+  //     }
+
+  //     // Calculate item total
+  //     const price = product.discountPrice > 0 ? product.discountPrice : product.price
+  //     const total = price * item.quantity
+
+  //     // Add to order items
+  //     orderItems.push({
+  //       product: item.product,
+  //       quantity: item.quantity,
+  //       price,
+  //       total,
+  //     })
+
+  //     // Add to subtotal
+  //     subtotal += total
+  //   }
+
+  //   // Calculate tax and shipping
+  //   const tax = subtotal * 0.1 // 10% tax
+  //   const shipping = subtotal > 100 ? 0 : 10 // Free shipping over $100
+  //   const total = subtotal + tax + shipping
+
+  //   // Create order
+  //   const newOrder = new this.orderModel({
+  //     orderNumber,
+  //     customer: userId,
+  //     items: orderItems,
+  //     subtotal,
+  //     tax,
+  //     shipping,
+  //     total,
+  //     status: OrderStatus.PENDING,
+  //     paymentStatus: PaymentStatus.PENDING,
+  //     shippingAddress: createOrderDto.shippingAddress,
+  //     billingAddress: createOrderDto.billingAddress,
+  //     notes: createOrderDto.notes,
+  //     statusHistory: [
+  //       {
+  //         status: OrderStatus.PENDING,
+  //         date: new Date(),
+  //         notes: "Order created",
+  //         userId,
+  //       },
+  //     ],
+  //   })
+
+  //   const savedOrder = await newOrder.save()
+
+  //   // Reduce inventory
+  //   for (const item of createOrderDto.items) {
+  //     await this.inventoryService.reduceStock(item.product, item.quantity, userId, `Order #${orderNumber}`)
+  //   }
+
+  //   // Send email notification
+  //   await this.emailService.sendOrderConfirmation(savedOrder, user)
+
+  //   // Send notification
+  //   await this.notificationsService.createNotification({
+  //     user: userId,
+  //     title: "Order Placed",
+  //     message: `Your order #${orderNumber} has been placed successfully.`,
+  //     type: "order",
+  //     reference: savedOrder._id.toString(),
+  //   })
+
+  //   // Send admin notification
+  //   await this.notificationsService.createAdminNotification({
+  //     title: "New Order",
+  //     message: `New order #${orderNumber} has been placed by ${user.firstName} ${user.lastName}.`,
+  //     type: "order",
+  //     reference: savedOrder._id.toString(),
+  //   })
+
+
+  //       // Send admin notification
+  //       await this.notificationsService.createAdminNotification({
+  //         title: "New Order",
+  //         message: `New order #${orderNumber} has been placed by ${user.firstName} ${user.lastName}.`,
+  //         type: "order",
+  //         reference: savedOrder._id.toString(),
+  //       })
+
+  //   // Log audit
+  //   await this.auditService.createAuditLog({
+  //     action: "CREATE",
+  //     userId,
+  //     module: "ORDERS",
+  //     description: `Order created: #${orderNumber}`,
+  //   })
+
+  //   return savedOrder
+  // }
 
   async findAll(params: PaginationParams): Promise<PaginatedResult<Order>> {
     const { page = 1, limit = 10, sort = "createdAt", order = "desc", search } = params

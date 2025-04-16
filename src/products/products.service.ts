@@ -24,39 +24,6 @@ export class ProductsService {
     private inventoryService: InventoryService,
   ) {}
 
-  // Product Methods
-  // async createProduct(createProductDto: CreateProductDto, userId: string): Promise<Product> {
-  //   // Validate category if provided
-  //   if (createProductDto.category) {
-  //     const categoryExists = await this.categoryModel.findById(createProductDto.category).exec()
-  //     if (!categoryExists) {
-  //       throw new BadRequestException("Category not found")
-  //     }
-  //   }
-
-  //   // Create product
-  //   const newProduct = new this.productModel(createProductDto)
-  //   const savedProduct = await newProduct.save()
-
-  //   // Create inventory entry for the product
-  //   await this.inventoryService.createInventoryItem({
-  //     product: savedProduct._id.toString(),
-  //     quantity: 0,
-  //     lowStockThreshold: 5,
-  //   })
-
-  //   // Log audit
-  //   await this.auditService.createAuditLog({
-  //     action: "CREATE",
-  //     userId,
-  //     module: "PRODUCTS",
-  //     description: `Product created: ${savedProduct.name}`,
-  //     changes: JSON.stringify(createProductDto),
-  //   })
-
-  //   return savedProduct
-  // }
-
   async createProduct(createProductDto: CreateProductDto, userId: string): Promise<Product> {
     console.log('Received createProductDto:', createProductDto);
     
@@ -160,23 +127,6 @@ export class ProductsService {
     }
   }
 
-  // async findProductById(id: string): Promise<Product> {
-  //   const product = await this.productModel
-  //     .findById(id)
-  //     .populate("category", "name")
-  //     .populate("relatedProducts", "name price images")
-  //     .exec()
-
-  //   if (!product) {
-  //     throw new NotFoundException(`Product with ID ${id} not found`)
-  //   }
-
-  //   // Increment view count
-  //   product.viewCount += 1
-  //   await product.save()
-
-  //   return product
-  // }
 
   async findProductById(id: string): Promise<Product> {
     // Check if the id is a valid MongoDB ObjectId
@@ -230,99 +180,6 @@ export class ProductsService {
   
     return updatedProduct;
   }
-
-  // async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
-  //   // Validate category if provided
-  //   if (updateProductDto.category) {
-  //     const categoryExists = await this.categoryModel.findById(updateProductDto.category);
-  //     if (!categoryExists) {
-  //       throw new BadRequestException("Category not found");
-  //     }
-  //   }
-  
-  //   const product = await this.productModel.findById(id);
-  //   if (!product) {
-  //     throw new NotFoundException(`Product with ID ${id} not found`);
-  //   }
-  
-  //   // Use updateOne instead of findByIdAndUpdate
-  //   await this.productModel.updateOne({ _id: id }, updateProductDto);
-    
-  //   // Fetch the updated product
-  //   const updatedProduct = await this.productModel.findById(id);
-  
-  //   // Log audit
-  //   await this.auditService.createAuditLog({
-  //     action: "UPDATE",
-  //     userId,
-  //     module: "PRODUCTS",
-  //     description: `Product updated: ${product.name}`,
-  //     changes: JSON.stringify(updateProductDto),
-  //   });
-  
-  //   return updatedProduct;
-  // }
-
-  // async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
-  //   // Validate category if provided
-  //   if (updateProductDto.category) {
-  //     const categoryExists = await this.categoryModel.findById(updateProductDto.category).exec()
-  //     if (!categoryExists) {
-  //       throw new BadRequestException("Category not found")
-  //     }
-  //   }
-
-  //   const product = await this.productModel.findById(id).exec()
-  //   if (!product) {
-  //     throw new NotFoundException(`Product with ID ${id} not found`)
-  //   }
-
-  //   const updatedProduct = await this.productModel.findByIdAndUpdate(id, updateProductDto, { new: true }).exec()
-
-  //   // Log audit
-  //   await this.auditService.createAuditLog({
-  //     action: "UPDATE",
-  //     userId,
-  //     module: "PRODUCTS",
-  //     description: `Product updated: ${product.name}`,
-  //     changes: JSON.stringify(updateProductDto),
-  //   })
-
-  //   return updatedProduct
-  // }
-
-  // async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
-  //   // Validate category if provided
-  //   if (updateProductDto.category) {
-  //     const categoryExists = await this.categoryModel.findById(updateProductDto.category).exec();
-  //     if (!categoryExists) {
-  //       throw new BadRequestException("Category not found");
-  //     }
-  //   }
-  
-  //   const product = await this.productModel.findById(id).exec();
-  //   if (!product) {
-  //     throw new NotFoundException(`Product with ID ${id} not found`);
-  //   }
-  
-  //   // Remove the .exec() call since findByIdAndUpdate returns a promise
-  //   const updatedProduct = await this.productModel.findByIdAndUpdate(
-  //     id, 
-  //     updateProductDto, 
-  //     { new: true }
-  //   );
-  
-  //   // Log audit
-  //   await this.auditService.createAuditLog({
-  //     action: "UPDATE",
-  //     userId,
-  //     module: "PRODUCTS",
-  //     description: `Product updated: ${product.name}`,
-  //     changes: JSON.stringify(updateProductDto),
-  //   });
-  
-  //   return updatedProduct;
-  // }
 
   async removeProduct(id: string, userId: string): Promise<Product> {
     const product = await this.productModel.findById(id).exec()
@@ -496,62 +353,6 @@ export class ProductsService {
     }
   }
 
-  // // Category Methods
-  // async createCategory(createCategoryDto: CreateCategoryDto, userId: string): Promise<Category> {
-  //   // Validate parent category if provided
-  //   if (createCategoryDto.parent) {
-  //     const parentExists = await this.categoryModel.findById(createCategoryDto.parent).exec()
-  //     if (!parentExists) {
-  //       throw new BadRequestException("Parent category not found")
-  //     }
-  //   }
-
-  //   const newCategory = new this.categoryModel(createCategoryDto)
-  //   const savedCategory = await newCategory.save()
-
-  //   // Log audit
-  //   await this.auditService.createAuditLog({
-  //     action: "CREATE",
-  //     userId,
-  //     module: "CATEGORIES",
-  //     description: `Category created: ${savedCategory.name}`,
-  //     changes: JSON.stringify(createCategoryDto),
-  //   })
-
-  //   return savedCategory
-  // }
-
-  // async createCategory(createCategoryDto: CreateCategoryDto, userId: string): Promise<Category> {
-  //   // Ensure createCategoryDto is an object
-  //   if (typeof createCategoryDto !== 'object' || createCategoryDto === null) {
-  //     throw new BadRequestException("Invalid category data provided");
-  //   }
-  
-  //   // Validate parent category if provided
-  //   if (createCategoryDto.parent) {
-  //     const parentExists = await this.categoryModel.findById(createCategoryDto.parent).exec();
-  //     if (!parentExists) {
-  //       throw new BadRequestException("Parent category not found");
-  //     }
-  //   }
-  
-  //   // Create a plain object from the DTO if it's not already one
-  //   const categoryData = { ...createCategoryDto };
-    
-  //   const newCategory = new this.categoryModel(categoryData);
-  //   const savedCategory = await newCategory.save();
-  
-  //   // Log audit
-  //   await this.auditService.createAuditLog({
-  //     action: "CREATE",
-  //     userId,
-  //     module: "CATEGORIES",
-  //     description: `Category created: ${savedCategory.name}`,
-  //     changes: JSON.stringify(categoryData),
-  //   });
-  
-  //   return savedCategory;
-  // }
 
   async createCategory(createCategoryDto: CreateCategoryDto, userId: string): Promise<Category> {
     console.log('Service received DTO:', createCategoryDto);
@@ -598,41 +399,6 @@ export class ProductsService {
       throw error;
     }
   }
-
-  // async findAllCategories(params: PaginationParams): Promise<PaginatedResult<Category>> {
-  //   const { page = 1, limit = 10, sort = "order", order = "asc", search } = params
-  //   const skip = (page - 1) * limit
-
-  //   // Build query
-  //   let query = {}
-  //   if (search) {
-  //     query = {
-  //       name: { $regex: search, $options: "i" },
-  //     }
-  //   }
-
-  //   // Execute query
-  //   const [categories, total] = await Promise.all([
-  //     this.categoryModel
-  //       .find(query)
-  //       .sort({ [sort]: order === "asc" ? 1 : -1 })
-  //       .skip(skip)
-  //       .limit(limit)
-  //       .populate("parent", "name")
-  //       .exec(),
-  //     this.categoryModel.countDocuments(query).exec(),
-  //   ])
-
-  //   return {
-  //     data: categories,
-  //     meta: {
-  //       total,
-  //       page,
-  //       limit,
-  //       totalPages: Math.ceil(total / limit),
-  //     },
-  //   }
-  // }
 
   async findAllCategories(params: PaginationParams): Promise<PaginatedResult<Category>> {
     const { page = 1, limit = 10, sort = "order", order = "asc", search } = params;

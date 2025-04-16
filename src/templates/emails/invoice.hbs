@@ -1,0 +1,89 @@
+{{#> layout}}
+  <div class="hero animate-fade-in">
+    <img src="{{siteUrl}}/images/invoice-banner.jpg" alt="Invoice" class="hero-image">
+    <div class="hero-overlay">
+      <h1 class="hero-title">Invoice #{{invoice.invoiceNumber}}</h1>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.1s;">
+    <p>Dear {{user.firstName}},</p>
+    
+    <p>Please find attached your invoice from Raymond Arts. We appreciate your business and look forward to fulfilling your order.</p>
+    
+    <div class="summary-box">
+      <h2 style="margin-top: 0;">Invoice Details</h2>
+      <div class="summary-row">
+        <span>Invoice Number:</span>
+        <span><strong>{{invoice.invoiceNumber}}</strong></span>
+      </div>
+      <div class="summary-row">
+        <span>Invoice Date:</span>
+        <span>{{formatDate invoice.createdAt}}</span>
+      </div>
+      <div class="summary-row">
+        <span>Due Date:</span>
+        <span>{{formatDate invoice.dueDate}}</span>
+      </div>
+      <div class="summary-row">
+        <span>Order Number:</span>
+        <span>{{#if invoice.order}}{{invoice.order.orderNumber}}{{else}}N/A{{/if}}</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.2s;">
+    <h2>Invoice Items</h2>
+    
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Qty</th>
+          <th>Price</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {{#each invoice.items}}
+          <tr>
+            <td>{{description}}</td>
+            <td>{{quantity}}</td>
+            <td>{{formatCurrency price}}</td>
+            <td>{{formatCurrency (multiply quantity price)}}</td>
+          </tr>
+        {{/each}}
+      </tbody>
+    </table>
+    
+    <div class="summary-box">
+      <div class="summary-row">
+        <span>Total:</span>
+        <span>{{formatCurrency invoice.total}}</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.3s;">
+    <h2>Billing Information</h2>
+    <p>
+      {{invoice.billingAddress.firstName}} {{invoice.billingAddress.lastName}}<br>
+      {{invoice.billingAddress.address}}<br>
+      {{invoice.billingAddress.city}}, {{invoice.billingAddress.state}} {{invoice.billingAddress.postalCode}}<br>
+      {{invoice.billingAddress.country}}
+    </p>
+    
+    <div class="button-container">
+      <a href="{{siteUrl}}/account/invoices/{{invoice._id}}" class="button">View Invoice Online</a>
+    </div>
+    
+    <p>If you have any questions about this invoice, please contact our billing department at {{shopEmail}} or call us at {{shopPhone}}.</p>
+    
+    <p>Thank you for your business!</p>
+    
+    <p>
+      Warm regards,<br>
+      The Raymond Arts Team
+    </p>
+  </div>
+{{/layout}}

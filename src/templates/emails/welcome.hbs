@@ -1,0 +1,63 @@
+{{#> layout}}
+  <div class="hero animate-fade-in">
+    <img src="{{siteUrl}}/images/welcome-banner.jpg" alt="Welcome to Raymond Arts" class="hero-image">
+    <div class="hero-overlay">
+      <h1 class="hero-title">Welcome to Raymond Arts!</h1>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.1s;">
+    <p>Dear {{user.firstName}},</p>
+    
+    <p>Welcome to the Raymond Arts family! We're thrilled to have you join our community of art enthusiasts and collectors.</p>
+    
+    <p>At Raymond Arts, we believe in the transformative power of art. Each piece in our collection is carefully curated to bring beauty, inspiration, and meaning to your space.</p>
+    
+    <div class="button-container">
+      <a href="{{siteUrl}}/shop" class="button">Explore Our Collection</a>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.2s;">
+    <h2>Your Account Benefits</h2>
+    
+    <ul>
+      <li>Early access to new collections and limited editions</li>
+      <li>Exclusive member-only discounts and promotions</li>
+      <li>Invitations to virtual and in-person art events</li>
+      <li>Easy order tracking and management</li>
+      <li>Personalized art recommendations based on your preferences</li>
+    </ul>
+    
+    <div class="button-container">
+      <a href="{{siteUrl}}/account" class="button">Manage Your Account</a>
+    </div>
+  </div>
+  
+  <div class="animate-slide-in" style="animation-delay: 0.3s;">
+    <h2>Connect With Us</h2>
+    
+    <p>Follow us on social media to stay updated on new arrivals, artist spotlights, and behind-the-scenes content:</p>
+    
+    <div style="text-align: center; margin: 20px 0;">
+      <a href="{{socialLinks.instagram}}" style="margin: 0 10px; text-decoration: none; color: #c2a87d;">
+        <strong>Instagram</strong>
+      </a>
+      <a href="{{socialLinks.facebook}}" style="margin: 0 10px; text-decoration: none; color: #c2a87d;">
+        <strong>Facebook</strong>
+      </a>
+      <a href="{{socialLinks.pinterest}}" style="margin: 0 10px; text-decoration: none; color: #c2a87d;">
+        <strong>Pinterest</strong>
+      </a>
+    </div>
+    
+    <p>If you have any questions or need assistance, our dedicated customer service team is here to help. Contact us at {{shopEmail}} or call us at {{shopPhone}}.</p>
+    
+    <p>Thank you for choosing Raymond Arts. We look forward to being part of your artistic journey!</p>
+    
+    <p>
+      Warm regards,<br>
+      The Raymond Arts Team
+    </p>
+  </div>
+{{/layout}}

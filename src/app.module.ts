@@ -34,6 +34,19 @@ import { UploadModule } from "./upload/upload.module"
     }),
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [
+        () => ({
+          email: {
+            service: process.env.EMAIL_SERVICE,
+            user: process.env.EMAIL_USER,
+            password: process.env.EMAIL_PASSWORD,
+            from: process.env.EMAIL_FROM,
+          },
+          frontend: {
+            url: process.env.FRONTEND_URL,
+          },
+        }),
+      ],
       envFilePath: '.env'
     }),
 
