@@ -128,18 +128,36 @@ export class ProductsService {
   }
 
 
+  // async findProductById(id: string): Promise<Product> {
+  //   // Check if the id is a valid MongoDB ObjectId
+  //   if (!mongoose.Types.ObjectId.isValid(id)) {
+  //     throw new BadRequestException(`Invalid product ID: ${id}`);
+  //   }
+  
+  //   const product = await this.productModel.findById(id).exec();
+    
+  //   if (!product) {
+  //     throw new NotFoundException(`Product with ID ${id} not found`);
+  //   }
+    
+  //   return product;
+  // }
+
   async findProductById(id: string): Promise<Product> {
     // Check if the id is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new BadRequestException(`Invalid product ID: ${id}`);
     }
   
-    const product = await this.productModel.findById(id).exec();
-    
+    const product = await this.productModel
+      .findById(id)
+      .populate('category') // Populate the category field
+      .exec();
+  
     if (!product) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
-    
+  
     return product;
   }
 
