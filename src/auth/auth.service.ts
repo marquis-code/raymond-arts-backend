@@ -1,12 +1,11 @@
 // import { Injectable, UnauthorizedException, BadRequestException } from "@nestjs/common"
-// import type { JwtService } from "@nestjs/jwt"
+// import { JwtService } from "@nestjs/jwt"
 // import * as bcrypt from "bcrypt"
-// import type { UsersService } from "../users/users.service"
-// import type { EmailService } from "../email/email.service"
-// import type { AuditService } from "../audit/audit.service"
+// import { UsersService } from "../users/users.service"
+// import { EmailService } from "../email/email.service"
+// import { AuditService } from "../audit/audit.service"
 // import type { CreateUserDto } from "../users/dto/create-user.dto"
 // import { v4 as uuidv4 } from "uuid"
-// import { toObjectId } from '../common/utils/mongoose.util';
 
 // @Injectable()
 // export class AuthService {
@@ -43,7 +42,7 @@
 
 //     await this.auditService.createAuditLog({
 //       action: "LOGIN",
-//       userId: toObjectId(user._id.toString()),
+//       userId: user._id.toString(), // Convert ObjectId to string
 //       module: "AUTH",
 //       description: `User logged in: ${user.email}`,
 //     })
@@ -59,7 +58,7 @@
 
 //     await this.auditService.createAuditLog({
 //       action: "REGISTER",
-//       userId: toObjectId(user._id.toString()),
+//       userId: user._id.toString(), // Convert ObjectId to string
 //       module: "AUTH",
 //       description: `New user registered: ${user.email}`,
 //     })
@@ -80,7 +79,7 @@
 //     const resetTokenExpiry = new Date()
 //     resetTokenExpiry.setHours(resetTokenExpiry.getHours() + 1) // Token valid for 1 hour
 
-//     await this.usersService.update(user._id, {
+//     await this.usersService.update(user._id.toString(), { // Convert ObjectId to string
 //       resetToken,
 //       resetTokenExpiry,
 //     })
@@ -89,7 +88,7 @@
 
 //     await this.auditService.createAuditLog({
 //       action: "PASSWORD_RESET_REQUEST",
-//       userId: toObjectId(user._id.toString()),
+//       userId: user._id.toString(), // Convert ObjectId to string
 //       module: "AUTH",
 //       description: `Password reset requested for: ${user.email}`,
 //     })
@@ -110,7 +109,7 @@
 
 //     const hashedPassword = await bcrypt.hash(newPassword, 10)
 
-//     await this.usersService.update(user._id, {
+//     await this.usersService.update(user._id.toString(), { // Convert ObjectId to string
 //       password: hashedPassword,
 //       resetToken: null,
 //       resetTokenExpiry: null,
@@ -118,7 +117,7 @@
 
 //     await this.auditService.createAuditLog({
 //       action: "PASSWORD_RESET",
-//       userId: toObjectId(user._id.toString()),
+//       userId: user._id.toString(), // Convert ObjectId to string
 //       module: "AUTH",
 //       description: `Password reset completed for: ${user.email}`,
 //     })
@@ -147,7 +146,7 @@
 
 //     await this.auditService.createAuditLog({
 //       action: "PASSWORD_CHANGE",
-//       userId: toObjectId(user._id.toString()),
+//       userId: user._id.toString(), // Convert ObjectId to string
 //       module: "AUTH",
 //       description: `Password changed for: ${user.email}`,
 //     })
@@ -155,8 +154,6 @@
 //     return { message: "Password changed successfully" }
 //   }
 // }
-
-
 
 import { Injectable, UnauthorizedException, BadRequestException } from "@nestjs/common"
 import { JwtService } from "@nestjs/jwt"
@@ -224,8 +221,19 @@ export class AuthService {
     })
 
     const { password: _, ...result } = user.toObject()
+    
+    // Generate JWT token for the newly registered user
+    const payload = {
+      sub: user._id,
+      email: user.email,
+      role: user.role,
+    }
 
-    return result
+    // Return both user data and access token, similar to login
+    return {
+      user: result,
+      accessToken: this.jwtService.sign(payload),
+    }
   }
 
   async requestPasswordReset(email: string) {

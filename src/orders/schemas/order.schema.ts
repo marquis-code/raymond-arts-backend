@@ -31,6 +31,7 @@ export class Order extends Document {
     ],
     required: true,
   })
+  
   items: Array<{
     product: MongooseSchema.Types.ObjectId
     quantity: number
@@ -154,10 +155,6 @@ export class Order extends Document {
 
 export const OrderSchema = SchemaFactory.createForClass(Order)
 
-// Virtual for calculating order age
-// OrderSchema.virtual("age").get(function () {
-//   return Math.floor((Date.now() - this.createdAt.getTime()) / (1000 * 60 * 60 * 24))
-// })
 OrderSchema.virtual("age").get(function (this: any) {
   return Math.floor((Date.now() - (this.createdAt ? this.createdAt.getTime() : Date.now())) / (1000 * 60 * 60 * 24));
 });
