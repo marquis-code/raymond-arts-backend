@@ -5,11 +5,11 @@
   "author": "arjunsumarlan",
   "license": "MIT",
   "scripts": {
-    "prebuild": "rimraf dist node ensure-templates.js",
+    "prebuild": "rimraf dist",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start:dev": "nest start --watch",
     "start": "node --max-old-space-size=2048 dist/main.js",
-    "build": "NODE_OPTIONS=--max-old-space-size=2048 nest build && node copy-templates.js",
+    "build": "NODE_OPTIONS=--max-old-space-size=2048 nest build && node ensure-templates.js",
     "copy-templates": "node copy-templates.js",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
@@ -20,9 +20,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:seed": "ts-node ./src/cli.ts create:user",
-    "setup-templates": "node ensure-templates.js && node copy-templates.js",
-    "prestart": "node ensure-templates.js",
-    "prestart:dev": "node ensure-templates.js"
+    "setup-templates": "node ensure-templates.js && node copy-templates.js"
   },
 "dependencies": {
     "@nestjs-modules/mailer": "^1.5.1",
