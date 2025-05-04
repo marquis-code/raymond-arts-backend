@@ -10,10 +10,9 @@ import type { PaginationDto } from "../common/dto/pagination.dto"
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from "@nestjs/swagger"
 import { TransactionStatus } from "./enums/transaction-status.enum"
 
+
 @ApiTags("Transactions")
 @Controller("transactions")
-// @UseGuards(JwtAuthGuard)
-// @ApiBearerAuth()
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 

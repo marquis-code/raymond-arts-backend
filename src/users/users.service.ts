@@ -327,9 +327,10 @@
 // }
 
 
-import { Injectable, NotFoundException, ConflictException } from "@nestjs/common"
+import { Injectable, NotFoundException, BadRequestException, InternalServerErrorException, ConflictException } from "@nestjs/common"
 import { InjectModel } from "@nestjs/mongoose"
 import type { Model } from "mongoose"
+import { Types } from 'mongoose';
 import * as bcrypt from "bcrypt"
 import { User } from "./schemas/user.schema"
 import type { CreateUserDto } from "./dto/create-user.dto"
@@ -406,12 +407,99 @@ export class UsersService {
     }
   }
 
-  async findById(id: string): Promise<User> {
-    const user = await this.userModel.findById(id).exec()
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`)
+  // async findById(id: string): Promise<User> {
+  //   const user = await this.userModel.findById(id).exec()
+  //   if (!user) {
+  //     throw new NotFoundException(`User with ID ${id} not found`)
+  //   }
+  //   return user
+  // }
+
+  async findById(id: any): Promise<User> {
+    try {
+      // Handle different input formats
+      let validId: string;
+      
+      // If id is null or undefined, throw error
+      if (id === null || id === undefined) {
+        throw new BadRequestException('User ID cannot be null or undefined');
+      }
+      
+      // If id is an object (like a full user object or ObjectId)
+      if (typeof id === 'object') {
+        // If it's a MongoDB ObjectId instance
+        if (id instanceof Types.ObjectId) {
+          validId = id.toString();
+        }
+        // If it's a user object with _id
+        else if (id._id) {
+          validId = id._id.toString();
+        }
+        // If it has a toString method, try using it
+        else if (typeof id.toString === 'function') {
+          const str = id.toString();
+          // Check if the result looks like an ObjectId
+          if (/^[0-9a-fA-F]{24}$/.test(str)) {
+            validId = str;
+          } else {
+            throw new BadRequestException(`Invalid user ID format: ${str}`);
+          }
+        } else {
+          throw new BadRequestException(`Cannot extract ID from object: ${JSON.stringify(id)}`);
+        }
+      }
+      // If id is a string
+      else if (typeof id === 'string') {
+        // If it's a JSON string, try to parse it
+        if (id.includes('{') && id.includes('}')) {
+          try {
+            const parsed = JSON.parse(id);
+            if (parsed._id) {
+              validId = parsed._id.toString();
+            } else {
+              throw new BadRequestException(`Parsed object does not contain _id: ${id}`);
+            }
+          } catch (e) {
+            // If it's not valid JSON but matches ObjectId format, use it directly
+            if (/^[0-9a-fA-F]{24}$/.test(id)) {
+              validId = id;
+            } else {
+              throw new BadRequestException(`Invalid user ID format: ${id}`);
+            }
+          }
+        } 
+        // If it's a simple string, check if it's a valid ObjectId format
+        else if (/^[0-9a-fA-F]{24}$/.test(id)) {
+          validId = id;
+        } else {
+          throw new BadRequestException(`Invalid user ID format: ${id}`);
+        }
+      } else {
+        throw new BadRequestException(`Unsupported ID type: ${typeof id}`);
+      }
+      
+      // Now find the user with the validated ID
+      const user = await this.userModel.findById(validId).exec();
+      
+      if (!user) {
+        throw new NotFoundException(`User with ID ${validId} not found`);
+      }
+      
+      return user;
+    } catch (error) {
+      // Re-throw NestJS exceptions
+      if (error instanceof NotFoundException || error instanceof BadRequestException) {
+        throw error;
+      }
+      
+      // For Mongoose/MongoDB errors
+      if (error.name === 'CastError') {
+        throw new BadRequestException(`Invalid user ID format: ${id}`);
+      }
+      
+      // For other errors
+      throw new InternalServerErrorException(`Error finding user: ${error.message}`);
     }
-    return user
   }
 
   async findByEmail(email: string): Promise<User> {

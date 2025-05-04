@@ -93,23 +93,71 @@ export class OrdersController {
     return this.ordersService.findOne(id);
   }
 
-  @Patch(':id/status')
+  // @Patch(':id/status')
   // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles(UserRole.ADMIN, UserRole.STAFF)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update order status' })
-  @ApiResponse({ status: 200, description: 'Order status updated successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Order not found' })
-  @ApiParam({ name: 'id', description: 'Order ID' })
-  updateStatus(
-    @Param('id') id: string,
-    @Body() updateOrderStatusDto: UpdateOrderStatusDto,
-    @Request() req,
-  ) {
-    return this.ordersService.updateStatus(id, updateOrderStatusDto, req)
+  // @Roles(UserRole.ADMIN, UserRole.STAFF, UserRole.CUSTOMER)
+  // @ApiBearerAuth()
+  // @ApiOperation({ summary: 'Update order status' })
+  // @ApiResponse({ status: 200, description: 'Order status updated successfully' })
+  // @ApiResponse({ status: 400, description: 'Bad request' })
+  // @ApiResponse({ status: 401, description: 'Unauthorized' })
+  // @ApiResponse({ status: 404, description: 'Order not found' })
+  // @ApiParam({ name: 'id', description: 'Order ID' })
+  // updateStatus(
+  //   @Param('id') id: string,
+  //   @Body() updateOrderStatusDto: UpdateOrderStatusDto,
+  //   @Request() req,
+  // ) {
+
+  //   // const userId = req.user._id;
+  //   const userId = req.user._id.toString();
+
+  //   return this.ordersService.updateStatus(id, updateOrderStatusDto, userId)
+  // }
+
+@Patch(':id/status')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN, UserRole.STAFF, UserRole.CUSTOMER)
+@ApiBearerAuth()
+@ApiOperation({ summary: 'Update order status' })
+@ApiResponse({ status: 200, description: 'Order status updated successfully' })
+@ApiResponse({ status: 400, description: 'Bad request' })
+@ApiResponse({ status: 401, description: 'Unauthorized' })
+@ApiResponse({ status: 404, description: 'Order not found' })
+@ApiParam({ name: 'id', description: 'Order ID' })
+updateStatus(
+  @Param('id') id: string,
+  @Body() updateOrderStatusDto: UpdateOrderStatusDto,
+  @Request() req,
+) {
+  // Debug the request object to see its structure
+  console.log('Request user object:', req.user);
+  
+  // Extract userId with proper error handling
+  let userId;
+  if (req.user) {
+    // Try different possible locations of the user ID
+    if (req.user._id) {
+      userId = req.user._id.toString();
+    } else if (req.user.id) {
+      userId = req.user.id.toString();
+    } else if (req.user.sub) {
+      userId = req.user.sub.toString();
+    } else {
+      // If we can't find a user ID, use a default or throw an error
+      console.error('Could not find user ID in request');
+      userId = 'unknown'; // Or throw new UnauthorizedException('User ID not found');
+    }
+  } else {
+    // No user object found
+    console.error('No user object in request');
+    userId = 'unknown'; // Or throw new UnauthorizedException('User not authenticated');
   }
+  
+  console.log('Extracted userId:', userId);
+  
+  return this.ordersService.updateStatus(id, updateOrderStatusDto, userId);
+}
 
 }
 

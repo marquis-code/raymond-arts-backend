@@ -375,18 +375,33 @@ export class OrdersService {
     }
   }
 
+  // async findOne(id: string): Promise<Order> {
+  //   const order = await this.orderModel
+  //     .findById(id)
+  //     .populate("customer", "firstName lastName email phone")
+  //     .populate("items.product", "name images price discountPrice")
+  //     .populate("transaction")
+  //     .exec()
+
+  //   if (!order) {
+  //     throw new NotFoundException(`Order with ID ${id} not found`)
+  //   }
+
+  //   return order
+  // }
+
   async findOne(id: string): Promise<Order> {
     const order = await this.orderModel
       .findById(id)
-      .populate("customer", "firstName lastName email phone")
+      .populate("customer", "_id") // Only populate the _id field of customer
       .populate("items.product", "name images price discountPrice")
       .populate("transaction")
       .exec()
-
+  
     if (!order) {
       throw new NotFoundException(`Order with ID ${id} not found`)
     }
-
+  
     return order
   }
 
@@ -405,38 +420,137 @@ export class OrdersService {
     return order
   }
 
+  // async updateStatus(id: string, updateOrderStatusDto: UpdateOrderStatusDto, userId: string): Promise<Order> {
+  //   const order = await this.findOne(id)
+  //   const oldStatus = order.status
+  //   const newStatus = updateOrderStatusDto.status
+
+  //   // Validate status transition
+  //   this.validateStatusTransition(oldStatus, newStatus)
+
+  //   // Update order status
+  //   order.status = newStatus
+
+  //   // Add to status history
+  //   order.statusHistory.push({
+  //     status: newStatus,
+  //     date: new Date(),
+  //     notes: updateOrderStatusDto.notes || `Status changed from ${oldStatus} to ${newStatus}`,
+  //     userId: new Types.ObjectId(userId),
+  //   })
+
+  //   // Update tracking information if provided
+  //   if (updateOrderStatusDto.trackingNumber) {
+  //     order.trackingNumber = updateOrderStatusDto.trackingNumber
+  //   }
+
+  //   if (updateOrderStatusDto.trackingUrl) {
+  //     order.trackingUrl = updateOrderStatusDto.trackingUrl
+  //   }
+
+  //   if (updateOrderStatusDto.estimatedDelivery) {
+  //     order.estimatedDelivery = new Date(updateOrderStatusDto.estimatedDelivery)
+  //   }
+
+  //   // Update timestamps based on status
+  //   if (newStatus === OrderStatus.SHIPPED && !order.shippedAt) {
+  //     order.shippedAt = new Date()
+  //   } else if (newStatus === OrderStatus.DELIVERED && !order.deliveredAt) {
+  //     order.deliveredAt = new Date()
+  //   } else if (newStatus === OrderStatus.CANCELLED && !order.cancelledAt) {
+  //     order.cancelledAt = new Date()
+
+  //     // Restore inventory
+  //     for (const item of order.items) {
+  //       await this.inventoryService.restoreStock(
+  //         item.product.toString(),
+  //         item.quantity,
+  //         userId,
+  //         `Order #${order.orderNumber} cancelled`,
+  //       )
+  //     }
+  //   } else if (newStatus === OrderStatus.RETURNED && !order.returnedAt) {
+  //     order.returnedAt = new Date()
+
+  //     // Restore inventory
+  //     for (const item of order.items) {
+  //       await this.inventoryService.restoreStock(
+  //         item.product.toString(),
+  //         item.quantity,
+  //         userId,
+  //         `Order #${order.orderNumber} returned`,
+  //       )
+  //     }
+  //   } else if (newStatus === OrderStatus.REFUNDED && !order.refundedAt) {
+  //     order.refundedAt = new Date()
+  //     order.paymentStatus = PaymentStatus.REFUNDED
+  //   }
+
+  //   const updatedOrder = await order.save()
+
+  //   // Send notification to customer
+  //   const customer = await this.usersService.findById(order.customer.toString())
+
+  //   await this.notificationsService.createNotification({
+  //     user: customer._id.toString(),
+  //     title: "Order Status Updated",
+  //     message: `Your order #${order.orderNumber} status has been updated to ${newStatus}.`,
+  //     type: "order",
+  //     reference: order._id.toString(),
+  //   })
+
+  //   // Log audit
+  //   await this.auditService.createAuditLog({
+  //     action: "UPDATE",
+  //     userId,
+  //     module: "ORDERS",
+  //     description: `Order #${order.orderNumber} status updated from ${oldStatus} to ${newStatus}`,
+  //     changes: JSON.stringify(updateOrderStatusDto),
+  //   })
+
+  //   return updatedOrder
+  // }
+
   async updateStatus(id: string, updateOrderStatusDto: UpdateOrderStatusDto, userId: string): Promise<Order> {
-    const order = await this.findOne(id)
+    const order = await this.findOne(id) as any
     const oldStatus = order.status
     const newStatus = updateOrderStatusDto.status
-
+  
     // Validate status transition
     this.validateStatusTransition(oldStatus, newStatus)
-
+  
     // Update order status
     order.status = newStatus
-
-    // Add to status history
+  
+    // Add to status history with proper error handling for ObjectId
+    let userObjectId;
+    try {
+      userObjectId = userId ? new Types.ObjectId(userId) : null;
+    } catch (error) {
+      console.warn(`Invalid userId format: ${userId}. Using null instead.`);
+      userObjectId = null;
+    }
+  
     order.statusHistory.push({
       status: newStatus,
       date: new Date(),
       notes: updateOrderStatusDto.notes || `Status changed from ${oldStatus} to ${newStatus}`,
-      userId: new Types.ObjectId(userId),
-    })
-
+      userId: userObjectId,
+    });
+  
     // Update tracking information if provided
     if (updateOrderStatusDto.trackingNumber) {
       order.trackingNumber = updateOrderStatusDto.trackingNumber
     }
-
+  
     if (updateOrderStatusDto.trackingUrl) {
       order.trackingUrl = updateOrderStatusDto.trackingUrl
     }
-
+  
     if (updateOrderStatusDto.estimatedDelivery) {
       order.estimatedDelivery = new Date(updateOrderStatusDto.estimatedDelivery)
     }
-
+  
     // Update timestamps based on status
     if (newStatus === OrderStatus.SHIPPED && !order.shippedAt) {
       order.shippedAt = new Date()
@@ -444,7 +558,7 @@ export class OrdersService {
       order.deliveredAt = new Date()
     } else if (newStatus === OrderStatus.CANCELLED && !order.cancelledAt) {
       order.cancelledAt = new Date()
-
+  
       // Restore inventory
       for (const item of order.items) {
         await this.inventoryService.restoreStock(
@@ -456,7 +570,7 @@ export class OrdersService {
       }
     } else if (newStatus === OrderStatus.RETURNED && !order.returnedAt) {
       order.returnedAt = new Date()
-
+  
       // Restore inventory
       for (const item of order.items) {
         await this.inventoryService.restoreStock(
@@ -470,20 +584,63 @@ export class OrdersService {
       order.refundedAt = new Date()
       order.paymentStatus = PaymentStatus.REFUNDED
     }
-
+  
     const updatedOrder = await order.save()
-
-    // Send notification to customer
-    const customer = await this.usersService.findById(order.customer.toString())
-
-    await this.notificationsService.createNotification({
-      user: customer._id.toString(),
-      title: "Order Status Updated",
-      message: `Your order #${order.orderNumber} status has been updated to ${newStatus}.`,
-      type: "order",
-      reference: order._id.toString(),
-    })
-
+  
+    // Extract the customer ID correctly
+    let customerId: string;
+    
+    // Check if customer is a populated object or just an ID
+    if (order.customer) {
+      if (typeof order.customer === 'object') {
+        // If it's a populated object with _id
+        if (order.customer._id) {
+          customerId = order.customer._id.toString();
+        } 
+        // If it's a Mongoose ObjectId
+        else if (order.customer instanceof Types.ObjectId) {
+          customerId = order.customer.toString();
+        }
+        // If it's a string representation of an object, try to extract the ID
+        else if (typeof order.customer.toString === 'function') {
+          const customerStr = order.customer.toString();
+          // Try to extract the ObjectId from the string
+          const match = customerStr.match(/ObjectId$$'([0-9a-fA-F]{24})'$$/);
+          if (match && match[1]) {
+            customerId = match[1];
+          } else {
+            console.error('Could not extract customer ID from:', customerStr);
+            // Skip notification if we can't get a valid customer ID
+            return updatedOrder;
+          }
+        }
+      } else {
+        // If it's already a string
+        customerId = order.customer.toString();
+      }
+    } else {
+      console.error('Order has no customer:', order);
+      // Skip notification if there's no customer
+      return updatedOrder;
+    }
+  
+    // Now use the extracted customerId
+    try {
+      const customer = await this.usersService.findById(customerId);
+      
+      // Send notification to customer
+      await this.notificationsService.createNotification({
+        user: customer._id.toString(),
+        title: "Order Status Updated",
+        message: `Your order #${order.orderNumber} status has been updated to ${newStatus}.`,
+        type: "order",
+        reference: order._id.toString(),
+      });
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      // Continue even if notification fails
+    }
+  
     // Log audit
     await this.auditService.createAuditLog({
       action: "UPDATE",
@@ -491,9 +648,9 @@ export class OrdersService {
       module: "ORDERS",
       description: `Order #${order.orderNumber} status updated from ${oldStatus} to ${newStatus}`,
       changes: JSON.stringify(updateOrderStatusDto),
-    })
-
-    return updatedOrder
+    });
+  
+    return updatedOrder;
   }
 
   async updatePaymentStatus(
@@ -557,6 +714,24 @@ export class OrdersService {
     return `${prefix}-${timestamp}-${random}`
   }
 
+  // private validateStatusTransition(oldStatus: OrderStatus, newStatus: OrderStatus): void {
+  //   // Define valid transitions
+  //   const validTransitions = {
+  //     [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
+  //     [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
+  //     [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.RETURNED],
+  //     [OrderStatus.DELIVERED]: [OrderStatus.RETURNED, OrderStatus.REFUNDED],
+  //     [OrderStatus.RETURNED]: [OrderStatus.REFUNDED],
+  //     [OrderStatus.CANCELLED]: [],
+  //     [OrderStatus.REFUNDED]: [],
+  //   }
+
+  //   // Check if transition is valid
+  //   if (!validTransitions[oldStatus].includes(newStatus) && oldStatus !== newStatus) {
+  //     throw new BadRequestException(`Invalid status transition from ${oldStatus} to ${newStatus}`)
+  //   }
+  // }
+
   private validateStatusTransition(oldStatus: OrderStatus, newStatus: OrderStatus): void {
     // Define valid transitions
     const validTransitions = {
@@ -568,7 +743,7 @@ export class OrdersService {
       [OrderStatus.CANCELLED]: [],
       [OrderStatus.REFUNDED]: [],
     }
-
+  
     // Check if transition is valid
     if (!validTransitions[oldStatus].includes(newStatus) && oldStatus !== newStatus) {
       throw new BadRequestException(`Invalid status transition from ${oldStatus} to ${newStatus}`)
