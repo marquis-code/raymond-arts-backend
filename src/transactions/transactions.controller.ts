@@ -12,14 +12,14 @@ import { TransactionStatus } from "./enums/transaction-status.enum"
 
 @ApiTags("Transactions")
 @Controller("transactions")
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+// @UseGuards(JwtAuthGuard)
+// @ApiBearerAuth()
 export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Post()
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  // @UseGuards(RolesGuard)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Create a transaction" })
   @ApiResponse({ status: 201, description: "Transaction created successfully" })
   @ApiResponse({ status: 401, description: "Unauthorized" })
@@ -29,6 +29,8 @@ export class TransactionsController {
 
   @Get()
   @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   @ApiOperation({ summary: "Get all transactions" })
   @ApiResponse({ status: 200, description: "Transactions retrieved successfully" })
@@ -46,6 +48,8 @@ export class TransactionsController {
   }
 
   @Get("statistics")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   @ApiOperation({ summary: "Get transaction statistics" })
@@ -76,6 +80,8 @@ export class TransactionsController {
   }
 
   @Patch(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Update a transaction" })
@@ -88,6 +94,8 @@ export class TransactionsController {
   }
 
   @Patch(":id/status/:status")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Update transaction status" })
@@ -101,6 +109,8 @@ export class TransactionsController {
   }
 
   @Delete(":id")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: "Delete a transaction" })
