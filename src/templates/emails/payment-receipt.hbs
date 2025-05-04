@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raymond Arts</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; padding: 20px; background-color: #f8f4ef; }
+    .content { padding: 20px; }
+    .footer { text-align: center; padding: 20px; font-size: 12px; color: #888; background-color: #f8f4ef; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Raymond Arts</h1>
+  </div>
+  <div class="content">
+    <p>Dear {{user.firstName}},</p>
+    
+    <p>This is a notification from Raymond Arts.</p>
+    
+    {{#if order}}
+    <p>Your order #{{order.orderNumber}} has been processed.</p>
+    {{/if}}
+    
+    {{#if invoice}}
+    <p>Your invoice #{{invoice.invoiceNumber}} has been created.</p>
+    {{/if}}
+    
+    {{#if resetUrl}}
+    <p>You can reset your password by clicking <a href="{{resetUrl}}">here</a>.</p>
+    {{/if}}
+    
+    <p>Thank you for choosing Raymond Arts!</p>
+    
+    <p>Best regards,<br>The Raymond Arts Team</p>
+  </div>
+  <div class="footer">
+    <p>&copy; {{currentYear}} Raymond Arts. All rights reserved.</p>
+  </div>
+</body>
+</html>

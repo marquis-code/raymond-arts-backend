@@ -520,7 +520,7 @@ export class OrdersService {
     this.validateStatusTransition(oldStatus, newStatus)
   
     // Update order status
-    order.status = newStatus
+    order.status = newStatus                                                                                                                                                                                                                                                                                                                            
   
     // Add to status history with proper error handling for ObjectId
     let userObjectId;
@@ -653,46 +653,95 @@ export class OrdersService {
     return updatedOrder;
   }
 
+
   async updatePaymentStatus(
     id: string,
     paymentStatus: PaymentStatus,
     transactionId: string,
     userId: string,
   ): Promise<Order> {
-    const order = await this.findOne(id)
+    const order = await this.findOne(id) as any
     const oldPaymentStatus = order.paymentStatus
-
+  
     // Update payment status
     order.paymentStatus = paymentStatus
-   order.transaction = new Types.ObjectId(transactionId)
-
+    order.transaction = new Types.ObjectId(transactionId)
+  
     // If payment is successful, update order status to processing
     if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
       order.status = OrderStatus.PROCESSING
+  
+      // Add to status history with proper error handling
+      // try {
+      //   // Create a valid ObjectId from userId
+      //   const userObjectId = new Types.ObjectId(userId);
+        
+      //   order.statusHistory.push({
+      //     status: OrderStatus.PROCESSING,
+      //     date: new Date(),
+      //     notes: "Payment received, order processing",
+      //     userId: userObjectId,
+      //   });
+      // } catch (error) {
+      //   console.error("Error converting userId to ObjectId:", error);
+        
+      //   // If conversion fails, add status history without userId
+      //   order.statusHistory.push({
+      //     status: OrderStatus.PROCESSING,
+      //     date: new Date(),
+      //     notes: "Payment received, order processing (system)",
+      //   });
+      // }
 
-      // Add to status history
-      order.statusHistory.push({
-        status: OrderStatus.PROCESSING,
-        date: new Date(),
-        notes: "Payment received, order processing",
-        userId: new Types.ObjectId(userId),
-        // userId,
-      })
+      try {
+        // Create a valid ObjectId from userId
+        const userObjectId = new Types.ObjectId(userId);
+        
+        order.statusHistory.push({
+          status: OrderStatus.PROCESSING,
+          date: new Date(),
+          notes: "Payment received, order processing",
+          userId: userObjectId,
+        });
+      } catch (error) {
+        console.error("Error converting userId to ObjectId:", error);
+        
+        // If conversion fails, use a system user ID (all zeros is a common convention for system users)
+        const systemUserId = new Types.ObjectId('000000000000000000000000');
+        
+        order.statusHistory.push({
+          status: OrderStatus.PROCESSING,
+          date: new Date(),
+          notes: "Payment received, order processing (system)",
+          userId: systemUserId, // Add the system user ID
+        });
+      }
     }
-
+  
     const updatedOrder = await order.save()
-
-    // Send notification to customer
-    const customer = await this.usersService.findById(order.customer.toString())
-
-    await this.notificationsService.createNotification({
-      user: customer._id.toString(),
-      title: "Payment Status Updated",
-      message: `Payment for your order #${order.orderNumber} has been ${paymentStatus}.`,
-      type: "payment",
-      reference: order._id.toString(),
-    })
-
+  
+    // Send notification to customer - safely extract customer ID
+    let customerId = '';
+    if (order.customer) {
+      if (typeof order.customer === 'object' && order.customer._id) {
+        customerId = order.customer._id.toString();
+      } else {
+        customerId = order.customer.toString();
+      }
+    }
+  
+    if (customerId) {
+      const customer = await this.usersService.findById(customerId);
+      
+      await this.notificationsService.createNotification({
+        user: customer._id.toString(),
+        title: "Payment Status Updated",
+        message: `Payment for your order #${order.orderNumber} has been ${paymentStatus}.`,
+        type: "payment",
+        reference: order._id.toString(),
+      });
+    }
+  
     // Log audit
     await this.auditService.createAuditLog({
       action: "UPDATE",
@@ -701,9 +750,203 @@ export class OrdersService {
       description: `Order #${order.orderNumber} payment status updated from ${oldPaymentStatus} to ${paymentStatus}`,
       changes: JSON.stringify({ paymentStatus, transactionId }),
     })
-
+  
     return updatedOrder
   }
+
+  // async updatePaymentStatus(
+  //   id: string,
+  //   paymentStatus: PaymentStatus,
+  //   transactionId: string,
+  //   userId: string,
+  // ): Promise<Order> {
+  //   const order = await this.findOne(id)
+  //   const oldPaymentStatus = order.paymentStatus
+  
+  //   // Update payment status
+  //   order.paymentStatus = paymentStatus
+  //   order.transaction = new Types.ObjectId(transactionId)
+  
+  //   // If payment is successful, update order status to processing
+  //   if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
+  //     order.status = OrderStatus.PROCESSING
+  
+  //     // Add to status history with proper error handling
+  //     try {
+  //       // Create a valid ObjectId from userId
+  //       const userObjectId = new Types.ObjectId(userId);
+        
+  //       order.statusHistory.push({
+  //         status: OrderStatus.PROCESSING,
+  //         date: new Date(),
+  //         notes: "Payment received, order processing",
+  //         userId: userObjectId,
+  //       });
+  //     } catch (error) {
+  //       console.error("Error converting userId to ObjectId:", error);
+        
+  //       // If conversion fails, use a system user ID (all zeros is a common convention for system users)
+  //       const systemUserId = new Types.ObjectId('000000000000000000000000');
+        
+  //       order.statusHistory.push({
+  //         status: OrderStatus.PROCESSING,
+  //         date: new Date(),
+  //         notes: "Payment received, order processing (system)",
+  //         userId: systemUserId, // Add the system user ID
+  //       });
+  //     }
+  //   }
+  
+  //   const updatedOrder = await order.save()
+  
+  //   // Rest of the method remains the same...
+  //   // ...
+  // }
+
+  // async updatePaymentStatus(
+  //   id: string,
+  //   paymentStatus: PaymentStatus,
+  //   transactionId: string,
+  //   userId: string,
+  // ): Promise<Order> {
+  //   const order = await this.findOne(id)
+  //   const oldPaymentStatus = order.paymentStatus
+
+  //   // Update payment status
+  //   order.paymentStatus = paymentStatus
+  //  order.transaction = new Types.ObjectId(transactionId)
+
+  //   // If payment is successful, update order status to processing
+  //   if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
+  //     order.status = OrderStatus.PROCESSING
+
+  //     // Add to status history
+  //     order.statusHistory.push({
+  //       status: OrderStatus.PROCESSING,
+  //       date: new Date(),
+  //       notes: "Payment received, order processing",
+  //       userId: new Types.ObjectId(userId),
+  //       // userId,
+  //     })
+  //   }
+
+  //   const updatedOrder = await order.save()
+
+  //   // Send notification to customer
+  //   const customer = await this.usersService.findById(order.customer.toString())
+
+  //   await this.notificationsService.createNotification({
+  //     user: customer._id.toString(),
+  //     title: "Payment Status Updated",
+  //     message: `Payment for your order #${order.orderNumber} has been ${paymentStatus}.`,
+  //     type: "payment",
+  //     reference: order._id.toString(),
+  //   })
+
+  //   // Log audit
+  //   await this.auditService.createAuditLog({
+  //     action: "UPDATE",
+  //     userId,
+  //     module: "ORDERS",
+  //     description: `Order #${order.orderNumber} payment status updated from ${oldPaymentStatus} to ${paymentStatus}`,
+  //     changes: JSON.stringify({ paymentStatus, transactionId }),
+  //   })
+
+  //   return updatedOrder
+  // }
+
+//   async updatePaymentStatus(
+//     id: string,
+//     paymentStatus: PaymentStatus,
+//     transactionId: string,
+//     userId: string,
+//   ): Promise<Order> {
+//     const order = await this.findOne(id)
+//     const oldPaymentStatus = order.paymentStatus
+
+//     // Update payment status
+//     order.paymentStatus = paymentStatus
+//     order.transaction = new Types.ObjectId(transactionId)
+
+//     // // If payment is successful, update order status to processing
+//     // if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
+//     //   order.status = OrderStatus.PROCESSING
+
+//     //   // Add to status history - Handle userId safely
+//     //   try {
+//     //     order.statusHistory.push({
+//     //       status: OrderStatus.PROCESSING,
+//     //       date: new Date(),
+//     //       notes: "Payment received, order processing",
+//     //       userId: userId.match(/^[0-9a-fA-F]{24}$/) ? new Types.ObjectId(userId) : userId,
+//     //     })
+//     //   } catch (error) {
+//     //     console.error("Error converting userId:", error);
+//     //     // Fallback: just use the string userId if conversion fails
+//     //     order.statusHistory.push({
+//     //       status: OrderStatus.PROCESSING,
+//     //       date: new Date(),
+//     //       notes: "Payment received, order processing",
+//     //       userId: userId,
+//     //     })
+//     //   }
+//     // }
+
+//     // If payment is successful, update order status to processing
+// if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
+//   order.status = OrderStatus.PROCESSING
+
+//   try {
+//     // Always attempt to convert userId to ObjectId
+//     const userObjectId = new Types.ObjectId(userId);
+    
+//     // Add to status history with valid ObjectId
+//     order.statusHistory.push({
+//       status: OrderStatus.PROCESSING,
+//       date: new Date(),
+//       notes: "Payment received, order processing",
+//       userId: userObjectId,
+//     });
+//   } catch (error) {
+//     console.error("Error converting userId to ObjectId:", error);
+    
+//     // If conversion fails, log the error but don't add invalid data to statusHistory
+//     // You can either skip adding to status history:
+//     // Or use a default/system ObjectId if appropriate:
+//     const systemUserId = new Types.ObjectId('000000000000000000000000'); // System user ID
+//     order.statusHistory.push({
+//       status: OrderStatus.PROCESSING,
+//       date: new Date(),
+//       notes: "Payment received, order processing (system)",
+//       userId: systemUserId,
+//     });
+//   }
+// }
+
+//     const updatedOrder = await order.save()
+
+//     // Send notification to customer
+//     const customer = await this.usersService.findById(order.customer.toString())
+
+//     await this.notificationsService.createNotification({
+//       user: customer._id.toString(),
+//       title: "Payment Status Updated",
+//       message: `Payment for your order #${order.orderNumber} has been ${paymentStatus}.`,
+//       type: "payment",
+//       reference: order._id.toString(),
+//     })
+
+//     // Log audit
+//     await this.auditService.createAuditLog({
+//       action: "UPDATE",
+//       userId,
+//       module: "ORDERS",
+//       description: `Order #${order.orderNumber} payment status updated from ${oldPaymentStatus} to ${paymentStatus}`,
+//       changes: JSON.stringify({ paymentStatus, transactionId }),
+//     })
+
+//     return updatedOrder
+//   }
 
   private generateOrderNumber(): string {
     const prefix = "ORD"

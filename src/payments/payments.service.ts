@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException } from "@nestjs/common"
+import { Types } from "mongoose"
 import { ConfigService } from "@nestjs/config"
 import type { ProcessPaymentDto } from "./dto/process-payment.dto"
 import type { VerifyPaymentDto } from "./dto/verify-payment.dto"
@@ -126,37 +127,240 @@ export class PaymentsService {
     }
   }
 
+  // async verifyPayment(verifyPaymentDto: VerifyPaymentDto, userId: string) {
+  //   // Get transaction details
+  //   const transaction = await this.transactionsService.findByTransactionId(verifyPaymentDto.transactionId) as any
+  //   console.log(transaction, 'found transaction')
+  //   // Verify transaction belongs to user
+  //   // if (transaction.user.toString() !== userId) {
+  //   //   throw new BadRequestException("Transaction does not belong to this user")
+  //   // }
+  //   if (transaction.user._id.toString() !== new Types.ObjectId(userId).toString()) {
+  //     throw new BadRequestException("Transaction does not belong to this user");
+  //   }
+
+  //   // For Flutterwave integration
+  //   if (transaction.paymentMethod === "flutterwave") {
+  //     // In a real implementation, you would verify with Flutterwave API here
+  //     // For now, we'll simulate a successful verification
+  //     const isVerified = true
+
+  //     if (isVerified) {
+  //       // Update transaction status
+  //       await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.SUCCESSFUL)
+
+  //       // Update order payment status
+  //       if (transaction.order) {
+  //         await this.ordersService.updatePaymentStatus(
+  //           transaction.order.toString(),
+  //           PaymentStatus.PAID,
+  //           transaction._id.toString(),
+  //           userId,
+  //         )
+
+  //         // Get order details
+  //         const order = await this.ordersService.findOne(transaction.order.toString())
+
+  //         // Send email notification
+  //         const user = await this.usersService.findById(userId)
+  //         await this.emailService.sendPaymentReceipt(
+  //           {
+  //             amount: transaction.amount,
+  //             reference: verifyPaymentDto.reference,
+  //             date: new Date(),
+  //             orderNumber: order.orderNumber,
+  //           },
+  //           user,
+  //         )
+
+  //         // Send notification
+  //         await this.notificationsService.createNotification({
+  //           user: userId,
+  //           title: "Payment Verified",
+  //           message: `Your payment for order #${order.orderNumber} has been verified.`,
+  //           type: "payment",
+  //           reference: order._id.toString(),
+  //         })
+  //       }
+
+  //       // Log audit
+  //       await this.auditService.createAuditLog({
+  //         action: "PAYMENT_VERIFY",
+  //         userId,
+  //         module: "PAYMENTS",
+  //         description: `Payment verified for transaction ${transaction.transactionId}`,
+  //       })
+
+  //       return {
+  //         success: true,
+  //         message: "Payment verified successfully",
+  //         data: {
+  //           transactionId: transaction.transactionId,
+  //           status: TransactionStatus.SUCCESSFUL,
+  //         },
+  //       }
+  //     } else {
+  //       // Update transaction status
+  //       await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.FAILED)
+
+  //       return {
+  //         success: false,
+  //         message: "Payment verification failed",
+  //         data: {
+  //           transactionId: transaction.transactionId,
+  //           status: TransactionStatus.FAILED,
+  //         },
+  //       }
+  //     }
+  //   }
+
+  //   // For other payment methods
+  //   return {
+  //     success: false,
+  //     message: "Payment method not supported for verification",
+  //   }
+  // }
+
+  // async verifyPayment(verifyPaymentDto: VerifyPaymentDto, userId: string) {
+  //   console.log("1. verifyPayment received userId:", userId, typeof userId);
+  //   // Get transaction details
+  //   const transaction = await this.transactionsService.findByTransactionId(verifyPaymentDto.transactionId) as any
+  //   console.log("2. Found transaction:", transaction.user);
+  //   console.log("3. transaction.user._id:", transaction.user._id, typeof transaction.user._id);
+    
+  //   // Verify transaction belongs to user
+  //   // if (transaction.user._id.toString() !== new Types.ObjectId(userId).toString()) {
+  //   //   throw new BadRequestException("Transaction does not belong to this user");
+  //   // }
+
+  //   if (transaction.user._id.toString() !== userId) {
+  //     throw new BadRequestException("Transaction does not belong to this user");
+  //   }
+
+  //   // For Flutterwave integration
+  //   if (transaction.paymentMethod === "flutterwave") {
+  //     // In a real implementation, you would verify with Flutterwave API here
+  //     // For now, we'll simulate a successful verification
+  //     const isVerified = true
+
+  //     if (isVerified) {
+  //       // Update transaction status
+  //       await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.SUCCESSFUL)
+
+  //       // Update order payment status
+  //       if (transaction.order) {
+  //         // Extract order ID correctly
+  //         const orderId = transaction.order._id.toString();
+  //         console.log("4. About to call updatePaymentStatus with userId:", userId, typeof userId);
+          
+  //         await this.ordersService.updatePaymentStatus(
+  //           orderId,
+  //           PaymentStatus.PAID,
+  //           transaction._id.toString(),
+  //           userId,
+  //         )
+
+  //         // Get order details
+  //         console.log("5. About to call findOne with orderId:", orderId);
+  //         const order = await this.ordersService.findOne(orderId)
+
+  //         // Send email notification
+  //         console.log("6. About to call findById with userId:", userId);
+  //         const user = await this.usersService.findById(userId)
+  //         await this.emailService.sendPaymentReceipt(
+  //           {
+  //             amount: transaction.amount,
+  //             reference: verifyPaymentDto.reference,
+  //             date: new Date(),
+  //             orderNumber: order.orderNumber,
+  //           },
+  //           user,
+  //         )
+
+  //         // Send notification
+  //         await this.notificationsService.createNotification({
+  //           user: userId,
+  //           title: "Payment Verified",
+  //           message: `Your payment for order #${order.orderNumber} has been verified.`,
+  //           type: "payment",
+  //           reference: orderId,
+  //         })
+  //       }
+
+  //       // Log audit
+  //       await this.auditService.createAuditLog({
+  //         action: "PAYMENT_VERIFY",
+  //         userId,
+  //         module: "PAYMENTS",
+  //         description: `Payment verified for transaction ${transaction.transactionId}`,
+  //       })
+
+  //       return {
+  //         success: true,
+  //         message: "Payment verified successfully",
+  //         data: {
+  //           transactionId: transaction.transactionId,
+  //           status: TransactionStatus.SUCCESSFUL,
+  //         },
+  //       }
+  //     } else {
+  //       // Update transaction status
+  //       await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.FAILED)
+
+  //       return {
+  //         success: false,
+  //         message: "Payment verification failed",
+  //         data: {
+  //           transactionId: transaction.transactionId,
+  //           status: TransactionStatus.FAILED,
+  //         },
+  //       }
+  //     }
+  //   }
+
+  //   // For other payment methods
+  //   return {
+  //     success: false,
+  //     message: "Payment method not supported for verification",
+  //   }
+  // }
+
+
   async verifyPayment(verifyPaymentDto: VerifyPaymentDto, userId: string) {
     // Get transaction details
-    const transaction = await this.transactionsService.findByTransactionId(verifyPaymentDto.transactionId)
-
-    // Verify transaction belongs to user
-    if (transaction.user.toString() !== userId) {
-      throw new BadRequestException("Transaction does not belong to this user")
+    const transaction = await this.transactionsService.findByTransactionId(verifyPaymentDto.transactionId) as any
+    
+    // Verify transaction belongs to user - FIXED COMPARISON
+    // Simply compare the string representations
+    if (transaction.user._id.toString() !== userId) {
+      throw new BadRequestException("Transaction does not belong to this user");
     }
-
+  
     // For Flutterwave integration
     if (transaction.paymentMethod === "flutterwave") {
       // In a real implementation, you would verify with Flutterwave API here
       // For now, we'll simulate a successful verification
       const isVerified = true
-
+  
       if (isVerified) {
         // Update transaction status
         await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.SUCCESSFUL)
-
+  
         // Update order payment status
         if (transaction.order) {
+          // Extract order ID correctly
+          const orderId = transaction.order._id ? transaction.order._id.toString() : transaction.order.toString();
+          
           await this.ordersService.updatePaymentStatus(
-            transaction.order.toString(),
+            orderId,
             PaymentStatus.PAID,
             transaction._id.toString(),
             userId,
           )
-
+  
           // Get order details
-          const order = await this.ordersService.findOne(transaction.order.toString())
-
+          const order = await this.ordersService.findOne(orderId)
+  
           // Send email notification
           const user = await this.usersService.findById(userId)
           await this.emailService.sendPaymentReceipt(
@@ -168,17 +372,17 @@ export class PaymentsService {
             },
             user,
           )
-
+  
           // Send notification
           await this.notificationsService.createNotification({
             user: userId,
             title: "Payment Verified",
             message: `Your payment for order #${order.orderNumber} has been verified.`,
             type: "payment",
-            reference: order._id.toString(),
+            reference: orderId,
           })
         }
-
+  
         // Log audit
         await this.auditService.createAuditLog({
           action: "PAYMENT_VERIFY",
@@ -186,7 +390,7 @@ export class PaymentsService {
           module: "PAYMENTS",
           description: `Payment verified for transaction ${transaction.transactionId}`,
         })
-
+  
         return {
           success: true,
           message: "Payment verified successfully",
@@ -198,7 +402,7 @@ export class PaymentsService {
       } else {
         // Update transaction status
         await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.FAILED)
-
+  
         return {
           success: false,
           message: "Payment verification failed",
@@ -209,7 +413,7 @@ export class PaymentsService {
         }
       }
     }
-
+  
     // For other payment methods
     return {
       success: false,
