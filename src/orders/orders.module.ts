@@ -11,6 +11,7 @@ import { AuditModule } from "../audit/audit.module"
 import { NotificationsModule } from "../notifications/notifications.module"
 import { InvoicesModule } from '../invoices/invoices.module';
 import { ShippingTaxModule } from '../shipping-tax/shipping-tax.module';
+import { SalesModule } from "src/sales/sales.module"
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { ShippingTaxModule } from '../shipping-tax/shipping-tax.module';
     InventoryModule,
     forwardRef(() => ShippingTaxModule),
     forwardRef(() => InvoicesModule),
+    SalesModule
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

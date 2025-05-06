@@ -16,6 +16,7 @@ import { InvoicesService } from "../invoices/invoices.service"
 import { ShippingTaxService } from "../shipping-tax/shipping-tax.service"
 import type { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
 import { Types } from "mongoose"
+import { SalesService } from "src/sales/sales.service"
 
 @Injectable()
 export class OrdersService {
@@ -29,6 +30,7 @@ export class OrdersService {
     private auditService: AuditService,
     private notificationsService: NotificationsService,
     private shippingTaxService: ShippingTaxService,
+    private salesService: SalesService
   ) {}
 
   async create(createOrderDto: CreateOrderDto, userId: string): Promise<Order> {
@@ -155,9 +157,6 @@ export class OrdersService {
     return savedOrder
   }
 
-  /**
-   * Creates an invoice from an order
-   */
   private async createInvoiceFromOrder(order: Order, userId: string): Promise<void> {
     // Map order items to invoice items
     const invoiceItems = order.items.map(item => ({
@@ -187,126 +186,6 @@ export class OrdersService {
       billingAddress: order.billingAddress
     }, userId)
   }
-
-
-  // async create(createOrderDto: CreateOrderDto, userId: string): Promise<Order> {
-  //   // Validate user
-  //   const user = await this.usersService.findById(userId)
-
-  //   // Generate order number
-  //   const orderNumber = this.generateOrderNumber()
-
-  //   // Process order items
-  //   const orderItems = []
-  //   let subtotal = 0
-
-  //   for (const item of createOrderDto.items) {
-  //     // Get product details
-  //     const product = await this.productsService.findProductById(item.product)
-
-  //     // Check if product is available
-  //     if (!product.isAvailable) {
-  //       throw new BadRequestException(`Product ${product.name} is not available`)
-  //     }
-
-  //     // Check inventory
-  //     const hasStock = await this.inventoryService.checkStock(item.product, item.quantity)
-
-  //     if (!hasStock) {
-  //       throw new BadRequestException(`Not enough stock for ${product.name}`)
-  //     }
-
-  //     // Calculate item total
-  //     const price = product.discountPrice > 0 ? product.discountPrice : product.price
-  //     const total = price * item.quantity
-
-  //     // Add to order items
-  //     orderItems.push({
-  //       product: item.product,
-  //       quantity: item.quantity,
-  //       price,
-  //       total,
-  //     })
-
-  //     // Add to subtotal
-  //     subtotal += total
-  //   }
-
-  //   // Calculate tax and shipping
-  //   const tax = subtotal * 0.1 // 10% tax
-  //   const shipping = subtotal > 100 ? 0 : 10 // Free shipping over $100
-  //   const total = subtotal + tax + shipping
-
-  //   // Create order
-  //   const newOrder = new this.orderModel({
-  //     orderNumber,
-  //     customer: userId,
-  //     items: orderItems,
-  //     subtotal,
-  //     tax,
-  //     shipping,
-  //     total,
-  //     status: OrderStatus.PENDING,
-  //     paymentStatus: PaymentStatus.PENDING,
-  //     shippingAddress: createOrderDto.shippingAddress,
-  //     billingAddress: createOrderDto.billingAddress,
-  //     notes: createOrderDto.notes,
-  //     statusHistory: [
-  //       {
-  //         status: OrderStatus.PENDING,
-  //         date: new Date(),
-  //         notes: "Order created",
-  //         userId,
-  //       },
-  //     ],
-  //   })
-
-  //   const savedOrder = await newOrder.save()
-
-  //   // Reduce inventory
-  //   for (const item of createOrderDto.items) {
-  //     await this.inventoryService.reduceStock(item.product, item.quantity, userId, `Order #${orderNumber}`)
-  //   }
-
-  //   // Send email notification
-  //   await this.emailService.sendOrderConfirmation(savedOrder, user)
-
-  //   // Send notification
-  //   await this.notificationsService.createNotification({
-  //     user: userId,
-  //     title: "Order Placed",
-  //     message: `Your order #${orderNumber} has been placed successfully.`,
-  //     type: "order",
-  //     reference: savedOrder._id.toString(),
-  //   })
-
-  //   // Send admin notification
-  //   await this.notificationsService.createAdminNotification({
-  //     title: "New Order",
-  //     message: `New order #${orderNumber} has been placed by ${user.firstName} ${user.lastName}.`,
-  //     type: "order",
-  //     reference: savedOrder._id.toString(),
-  //   })
-
-
-  //       // Send admin notification
-  //       await this.notificationsService.createAdminNotification({
-  //         title: "New Order",
-  //         message: `New order #${orderNumber} has been placed by ${user.firstName} ${user.lastName}.`,
-  //         type: "order",
-  //         reference: savedOrder._id.toString(),
-  //       })
-
-  //   // Log audit
-  //   await this.auditService.createAuditLog({
-  //     action: "CREATE",
-  //     userId,
-  //     module: "ORDERS",
-  //     description: `Order created: #${orderNumber}`,
-  //   })
-
-  //   return savedOrder
-  // }
 
   async findAll(params: PaginationParams): Promise<PaginatedResult<Order>> {
     const { page = 1, limit = 10, sort = "createdAt", order = "desc", search } = params
@@ -375,20 +254,6 @@ export class OrdersService {
     }
   }
 
-  // async findOne(id: string): Promise<Order> {
-  //   const order = await this.orderModel
-  //     .findById(id)
-  //     .populate("customer", "firstName lastName email phone")
-  //     .populate("items.product", "name images price discountPrice")
-  //     .populate("transaction")
-  //     .exec()
-
-  //   if (!order) {
-  //     throw new NotFoundException(`Order with ID ${id} not found`)
-  //   }
-
-  //   return order
-  // }
 
   async findOne(id: string): Promise<Order> {
     const order = await this.orderModel
@@ -421,37 +286,45 @@ export class OrdersService {
   }
 
   // async updateStatus(id: string, updateOrderStatusDto: UpdateOrderStatusDto, userId: string): Promise<Order> {
-  //   const order = await this.findOne(id)
+  //   const order = await this.findOne(id) as any
   //   const oldStatus = order.status
   //   const newStatus = updateOrderStatusDto.status
-
+  
   //   // Validate status transition
   //   this.validateStatusTransition(oldStatus, newStatus)
-
+  
   //   // Update order status
-  //   order.status = newStatus
-
-  //   // Add to status history
+  //   order.status = newStatus                                                                                                                                                                                                                                                                                                                            
+  
+  //   // Add to status history with proper error handling for ObjectId
+  //   let userObjectId;
+  //   try {
+  //     userObjectId = userId ? new Types.ObjectId(userId) : null;
+  //   } catch (error) {
+  //     console.warn(`Invalid userId format: ${userId}. Using null instead.`);
+  //     userObjectId = null;
+  //   }
+  
   //   order.statusHistory.push({
   //     status: newStatus,
   //     date: new Date(),
   //     notes: updateOrderStatusDto.notes || `Status changed from ${oldStatus} to ${newStatus}`,
-  //     userId: new Types.ObjectId(userId),
-  //   })
-
+  //     userId: userObjectId,
+  //   });
+  
   //   // Update tracking information if provided
   //   if (updateOrderStatusDto.trackingNumber) {
   //     order.trackingNumber = updateOrderStatusDto.trackingNumber
   //   }
-
+  
   //   if (updateOrderStatusDto.trackingUrl) {
   //     order.trackingUrl = updateOrderStatusDto.trackingUrl
   //   }
-
+  
   //   if (updateOrderStatusDto.estimatedDelivery) {
   //     order.estimatedDelivery = new Date(updateOrderStatusDto.estimatedDelivery)
   //   }
-
+  
   //   // Update timestamps based on status
   //   if (newStatus === OrderStatus.SHIPPED && !order.shippedAt) {
   //     order.shippedAt = new Date()
@@ -459,7 +332,7 @@ export class OrdersService {
   //     order.deliveredAt = new Date()
   //   } else if (newStatus === OrderStatus.CANCELLED && !order.cancelledAt) {
   //     order.cancelledAt = new Date()
-
+  
   //     // Restore inventory
   //     for (const item of order.items) {
   //       await this.inventoryService.restoreStock(
@@ -471,7 +344,7 @@ export class OrdersService {
   //     }
   //   } else if (newStatus === OrderStatus.RETURNED && !order.returnedAt) {
   //     order.returnedAt = new Date()
-
+  
   //     // Restore inventory
   //     for (const item of order.items) {
   //       await this.inventoryService.restoreStock(
@@ -485,20 +358,63 @@ export class OrdersService {
   //     order.refundedAt = new Date()
   //     order.paymentStatus = PaymentStatus.REFUNDED
   //   }
-
+  
   //   const updatedOrder = await order.save()
-
-  //   // Send notification to customer
-  //   const customer = await this.usersService.findById(order.customer.toString())
-
-  //   await this.notificationsService.createNotification({
-  //     user: customer._id.toString(),
-  //     title: "Order Status Updated",
-  //     message: `Your order #${order.orderNumber} status has been updated to ${newStatus}.`,
-  //     type: "order",
-  //     reference: order._id.toString(),
-  //   })
-
+  
+  //   // Extract the customer ID correctly
+  //   let customerId: string;
+    
+  //   // Check if customer is a populated object or just an ID
+  //   if (order.customer) {
+  //     if (typeof order.customer === 'object') {
+  //       // If it's a populated object with _id
+  //       if (order.customer._id) {
+  //         customerId = order.customer._id.toString();
+  //       } 
+  //       // If it's a Mongoose ObjectId
+  //       else if (order.customer instanceof Types.ObjectId) {
+  //         customerId = order.customer.toString();
+  //       }
+  //       // If it's a string representation of an object, try to extract the ID
+  //       else if (typeof order.customer.toString === 'function') {
+  //         const customerStr = order.customer.toString();
+  //         // Try to extract the ObjectId from the string
+  //         const match = customerStr.match(/ObjectId$$'([0-9a-fA-F]{24})'$$/);
+  //         if (match && match[1]) {
+  //           customerId = match[1];
+  //         } else {
+  //           console.error('Could not extract customer ID from:', customerStr);
+  //           // Skip notification if we can't get a valid customer ID
+  //           return updatedOrder;
+  //         }
+  //       }
+  //     } else {
+  //       // If it's already a string
+  //       customerId = order.customer.toString();
+  //     }
+  //   } else {
+  //     console.error('Order has no customer:', order);
+  //     // Skip notification if there's no customer
+  //     return updatedOrder;
+  //   }
+  
+  //   // Now use the extracted customerId
+  //   try {
+  //     const customer = await this.usersService.findById(customerId);
+      
+  //     // Send notification to customer
+  //     await this.notificationsService.createNotification({
+  //       user: customer._id.toString(),
+  //       title: "Order Status Updated",
+  //       message: `Your order #${order.orderNumber} status has been updated to ${newStatus}.`,
+  //       type: "order",
+  //       reference: order._id.toString(),
+  //     });
+  //   } catch (error) {
+  //     console.error('Error sending notification:', error);
+  //     // Continue even if notification fails
+  //   }
+  
   //   // Log audit
   //   await this.auditService.createAuditLog({
   //     action: "UPDATE",
@@ -506,9 +422,9 @@ export class OrdersService {
   //     module: "ORDERS",
   //     description: `Order #${order.orderNumber} status updated from ${oldStatus} to ${newStatus}`,
   //     changes: JSON.stringify(updateOrderStatusDto),
-  //   })
-
-  //   return updatedOrder
+  //   });
+  
+  //   return updatedOrder;
   // }
 
   async updateStatus(id: string, updateOrderStatusDto: UpdateOrderStatusDto, userId: string): Promise<Order> {
@@ -556,6 +472,29 @@ export class OrdersService {
       order.shippedAt = new Date()
     } else if (newStatus === OrderStatus.DELIVERED && !order.deliveredAt) {
       order.deliveredAt = new Date()
+      
+      // Create a sale record when order is delivered
+      try {
+        // Extract product IDs from order items
+        const productIds = order.items.map(item => item.product);
+        
+        // Create sale record
+        await this.salesService.create({
+          order: order._id,
+          customer: order.customer._id,
+          products: productIds,
+          amount: order.total,
+          date: new Date().toISOString(), // Convert Date to ISO string format
+          transaction: order.transaction,
+          notes: `Sale created from order #${order.orderNumber} when marked as delivered`
+        }, userId);
+        
+        console.log(`Sale record created for order #${order.orderNumber}`);
+      } catch (error) {
+        console.error(`Failed to create sale record for order #${order.orderNumber}:`, error);
+        // Continue with order update even if sale creation fails
+        // You might want to implement a retry mechanism or queue in a production environment
+      }
     } else if (newStatus === OrderStatus.CANCELLED && !order.cancelledAt) {
       order.cancelledAt = new Date()
   
@@ -754,199 +693,6 @@ export class OrdersService {
     return updatedOrder
   }
 
-  // async updatePaymentStatus(
-  //   id: string,
-  //   paymentStatus: PaymentStatus,
-  //   transactionId: string,
-  //   userId: string,
-  // ): Promise<Order> {
-  //   const order = await this.findOne(id)
-  //   const oldPaymentStatus = order.paymentStatus
-  
-  //   // Update payment status
-  //   order.paymentStatus = paymentStatus
-  //   order.transaction = new Types.ObjectId(transactionId)
-  
-  //   // If payment is successful, update order status to processing
-  //   if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
-  //     order.status = OrderStatus.PROCESSING
-  
-  //     // Add to status history with proper error handling
-  //     try {
-  //       // Create a valid ObjectId from userId
-  //       const userObjectId = new Types.ObjectId(userId);
-        
-  //       order.statusHistory.push({
-  //         status: OrderStatus.PROCESSING,
-  //         date: new Date(),
-  //         notes: "Payment received, order processing",
-  //         userId: userObjectId,
-  //       });
-  //     } catch (error) {
-  //       console.error("Error converting userId to ObjectId:", error);
-        
-  //       // If conversion fails, use a system user ID (all zeros is a common convention for system users)
-  //       const systemUserId = new Types.ObjectId('000000000000000000000000');
-        
-  //       order.statusHistory.push({
-  //         status: OrderStatus.PROCESSING,
-  //         date: new Date(),
-  //         notes: "Payment received, order processing (system)",
-  //         userId: systemUserId, // Add the system user ID
-  //       });
-  //     }
-  //   }
-  
-  //   const updatedOrder = await order.save()
-  
-  //   // Rest of the method remains the same...
-  //   // ...
-  // }
-
-  // async updatePaymentStatus(
-  //   id: string,
-  //   paymentStatus: PaymentStatus,
-  //   transactionId: string,
-  //   userId: string,
-  // ): Promise<Order> {
-  //   const order = await this.findOne(id)
-  //   const oldPaymentStatus = order.paymentStatus
-
-  //   // Update payment status
-  //   order.paymentStatus = paymentStatus
-  //  order.transaction = new Types.ObjectId(transactionId)
-
-  //   // If payment is successful, update order status to processing
-  //   if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
-  //     order.status = OrderStatus.PROCESSING
-
-  //     // Add to status history
-  //     order.statusHistory.push({
-  //       status: OrderStatus.PROCESSING,
-  //       date: new Date(),
-  //       notes: "Payment received, order processing",
-  //       userId: new Types.ObjectId(userId),
-  //       // userId,
-  //     })
-  //   }
-
-  //   const updatedOrder = await order.save()
-
-  //   // Send notification to customer
-  //   const customer = await this.usersService.findById(order.customer.toString())
-
-  //   await this.notificationsService.createNotification({
-  //     user: customer._id.toString(),
-  //     title: "Payment Status Updated",
-  //     message: `Payment for your order #${order.orderNumber} has been ${paymentStatus}.`,
-  //     type: "payment",
-  //     reference: order._id.toString(),
-  //   })
-
-  //   // Log audit
-  //   await this.auditService.createAuditLog({
-  //     action: "UPDATE",
-  //     userId,
-  //     module: "ORDERS",
-  //     description: `Order #${order.orderNumber} payment status updated from ${oldPaymentStatus} to ${paymentStatus}`,
-  //     changes: JSON.stringify({ paymentStatus, transactionId }),
-  //   })
-
-  //   return updatedOrder
-  // }
-
-//   async updatePaymentStatus(
-//     id: string,
-//     paymentStatus: PaymentStatus,
-//     transactionId: string,
-//     userId: string,
-//   ): Promise<Order> {
-//     const order = await this.findOne(id)
-//     const oldPaymentStatus = order.paymentStatus
-
-//     // Update payment status
-//     order.paymentStatus = paymentStatus
-//     order.transaction = new Types.ObjectId(transactionId)
-
-//     // // If payment is successful, update order status to processing
-//     // if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
-//     //   order.status = OrderStatus.PROCESSING
-
-//     //   // Add to status history - Handle userId safely
-//     //   try {
-//     //     order.statusHistory.push({
-//     //       status: OrderStatus.PROCESSING,
-//     //       date: new Date(),
-//     //       notes: "Payment received, order processing",
-//     //       userId: userId.match(/^[0-9a-fA-F]{24}$/) ? new Types.ObjectId(userId) : userId,
-//     //     })
-//     //   } catch (error) {
-//     //     console.error("Error converting userId:", error);
-//     //     // Fallback: just use the string userId if conversion fails
-//     //     order.statusHistory.push({
-//     //       status: OrderStatus.PROCESSING,
-//     //       date: new Date(),
-//     //       notes: "Payment received, order processing",
-//     //       userId: userId,
-//     //     })
-//     //   }
-//     // }
-
-//     // If payment is successful, update order status to processing
-// if (paymentStatus === PaymentStatus.PAID && order.status === OrderStatus.PENDING) {
-//   order.status = OrderStatus.PROCESSING
-
-//   try {
-//     // Always attempt to convert userId to ObjectId
-//     const userObjectId = new Types.ObjectId(userId);
-    
-//     // Add to status history with valid ObjectId
-//     order.statusHistory.push({
-//       status: OrderStatus.PROCESSING,
-//       date: new Date(),
-//       notes: "Payment received, order processing",
-//       userId: userObjectId,
-//     });
-//   } catch (error) {
-//     console.error("Error converting userId to ObjectId:", error);
-    
-//     // If conversion fails, log the error but don't add invalid data to statusHistory
-//     // You can either skip adding to status history:
-//     // Or use a default/system ObjectId if appropriate:
-//     const systemUserId = new Types.ObjectId('000000000000000000000000'); // System user ID
-//     order.statusHistory.push({
-//       status: OrderStatus.PROCESSING,
-//       date: new Date(),
-//       notes: "Payment received, order processing (system)",
-//       userId: systemUserId,
-//     });
-//   }
-// }
-
-//     const updatedOrder = await order.save()
-
-//     // Send notification to customer
-//     const customer = await this.usersService.findById(order.customer.toString())
-
-//     await this.notificationsService.createNotification({
-//       user: customer._id.toString(),
-//       title: "Payment Status Updated",
-//       message: `Payment for your order #${order.orderNumber} has been ${paymentStatus}.`,
-//       type: "payment",
-//       reference: order._id.toString(),
-//     })
-
-//     // Log audit
-//     await this.auditService.createAuditLog({
-//       action: "UPDATE",
-//       userId,
-//       module: "ORDERS",
-//       description: `Order #${order.orderNumber} payment status updated from ${oldPaymentStatus} to ${paymentStatus}`,
-//       changes: JSON.stringify({ paymentStatus, transactionId }),
-//     })
-
-//     return updatedOrder
-//   }
 
   private generateOrderNumber(): string {
     const prefix = "ORD"
@@ -957,23 +703,6 @@ export class OrdersService {
     return `${prefix}-${timestamp}-${random}`
   }
 
-  // private validateStatusTransition(oldStatus: OrderStatus, newStatus: OrderStatus): void {
-  //   // Define valid transitions
-  //   const validTransitions = {
-  //     [OrderStatus.PENDING]: [OrderStatus.PROCESSING, OrderStatus.CANCELLED],
-  //     [OrderStatus.PROCESSING]: [OrderStatus.SHIPPED, OrderStatus.CANCELLED],
-  //     [OrderStatus.SHIPPED]: [OrderStatus.DELIVERED, OrderStatus.RETURNED],
-  //     [OrderStatus.DELIVERED]: [OrderStatus.RETURNED, OrderStatus.REFUNDED],
-  //     [OrderStatus.RETURNED]: [OrderStatus.REFUNDED],
-  //     [OrderStatus.CANCELLED]: [],
-  //     [OrderStatus.REFUNDED]: [],
-  //   }
-
-  //   // Check if transition is valid
-  //   if (!validTransitions[oldStatus].includes(newStatus) && oldStatus !== newStatus) {
-  //     throw new BadRequestException(`Invalid status transition from ${oldStatus} to ${newStatus}`)
-  //   }
-  // }
 
   private validateStatusTransition(oldStatus: OrderStatus, newStatus: OrderStatus): void {
     // Define valid transitions

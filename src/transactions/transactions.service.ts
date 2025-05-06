@@ -233,6 +233,10 @@ export class TransactionsService {
     }
   }
 
+  async getCount(filter: any): Promise<number> {
+    return this.transactionModel.countDocuments(filter).exec();
+  }
+
   private generateTransactionId(): string {
     const prefix = "TRX"
     const timestamp = Date.now().toString().slice(-8)

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from "@nestjs/common"
+import { Injectable, BadRequestException, ForbiddenException } from "@nestjs/common"
 import { Types } from "mongoose"
 import { ConfigService } from "@nestjs/config"
 import type { ProcessPaymentDto } from "./dto/process-payment.dto"
@@ -12,6 +12,15 @@ import { NotificationsService } from "../notifications/notifications.service"
 import { TransactionType } from "../transactions/enums/transaction-type.enum"
 import { TransactionStatus } from "../transactions/enums/transaction-status.enum"
 import { PaymentStatus } from "../orders/enums/payment-status.enum"
+
+interface PaymentFilterOptions {
+  page: number;
+  limit: number;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+  paymentMethod?: string;
+}
 
 @Injectable()
 export class PaymentsService {
@@ -126,205 +135,6 @@ export class PaymentsService {
       },
     }
   }
-
-  // async verifyPayment(verifyPaymentDto: VerifyPaymentDto, userId: string) {
-  //   // Get transaction details
-  //   const transaction = await this.transactionsService.findByTransactionId(verifyPaymentDto.transactionId) as any
-  //   console.log(transaction, 'found transaction')
-  //   // Verify transaction belongs to user
-  //   // if (transaction.user.toString() !== userId) {
-  //   //   throw new BadRequestException("Transaction does not belong to this user")
-  //   // }
-  //   if (transaction.user._id.toString() !== new Types.ObjectId(userId).toString()) {
-  //     throw new BadRequestException("Transaction does not belong to this user");
-  //   }
-
-  //   // For Flutterwave integration
-  //   if (transaction.paymentMethod === "flutterwave") {
-  //     // In a real implementation, you would verify with Flutterwave API here
-  //     // For now, we'll simulate a successful verification
-  //     const isVerified = true
-
-  //     if (isVerified) {
-  //       // Update transaction status
-  //       await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.SUCCESSFUL)
-
-  //       // Update order payment status
-  //       if (transaction.order) {
-  //         await this.ordersService.updatePaymentStatus(
-  //           transaction.order.toString(),
-  //           PaymentStatus.PAID,
-  //           transaction._id.toString(),
-  //           userId,
-  //         )
-
-  //         // Get order details
-  //         const order = await this.ordersService.findOne(transaction.order.toString())
-
-  //         // Send email notification
-  //         const user = await this.usersService.findById(userId)
-  //         await this.emailService.sendPaymentReceipt(
-  //           {
-  //             amount: transaction.amount,
-  //             reference: verifyPaymentDto.reference,
-  //             date: new Date(),
-  //             orderNumber: order.orderNumber,
-  //           },
-  //           user,
-  //         )
-
-  //         // Send notification
-  //         await this.notificationsService.createNotification({
-  //           user: userId,
-  //           title: "Payment Verified",
-  //           message: `Your payment for order #${order.orderNumber} has been verified.`,
-  //           type: "payment",
-  //           reference: order._id.toString(),
-  //         })
-  //       }
-
-  //       // Log audit
-  //       await this.auditService.createAuditLog({
-  //         action: "PAYMENT_VERIFY",
-  //         userId,
-  //         module: "PAYMENTS",
-  //         description: `Payment verified for transaction ${transaction.transactionId}`,
-  //       })
-
-  //       return {
-  //         success: true,
-  //         message: "Payment verified successfully",
-  //         data: {
-  //           transactionId: transaction.transactionId,
-  //           status: TransactionStatus.SUCCESSFUL,
-  //         },
-  //       }
-  //     } else {
-  //       // Update transaction status
-  //       await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.FAILED)
-
-  //       return {
-  //         success: false,
-  //         message: "Payment verification failed",
-  //         data: {
-  //           transactionId: transaction.transactionId,
-  //           status: TransactionStatus.FAILED,
-  //         },
-  //       }
-  //     }
-  //   }
-
-  //   // For other payment methods
-  //   return {
-  //     success: false,
-  //     message: "Payment method not supported for verification",
-  //   }
-  // }
-
-  // async verifyPayment(verifyPaymentDto: VerifyPaymentDto, userId: string) {
-  //   console.log("1. verifyPayment received userId:", userId, typeof userId);
-  //   // Get transaction details
-  //   const transaction = await this.transactionsService.findByTransactionId(verifyPaymentDto.transactionId) as any
-  //   console.log("2. Found transaction:", transaction.user);
-  //   console.log("3. transaction.user._id:", transaction.user._id, typeof transaction.user._id);
-    
-  //   // Verify transaction belongs to user
-  //   // if (transaction.user._id.toString() !== new Types.ObjectId(userId).toString()) {
-  //   //   throw new BadRequestException("Transaction does not belong to this user");
-  //   // }
-
-  //   if (transaction.user._id.toString() !== userId) {
-  //     throw new BadRequestException("Transaction does not belong to this user");
-  //   }
-
-  //   // For Flutterwave integration
-  //   if (transaction.paymentMethod === "flutterwave") {
-  //     // In a real implementation, you would verify with Flutterwave API here
-  //     // For now, we'll simulate a successful verification
-  //     const isVerified = true
-
-  //     if (isVerified) {
-  //       // Update transaction status
-  //       await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.SUCCESSFUL)
-
-  //       // Update order payment status
-  //       if (transaction.order) {
-  //         // Extract order ID correctly
-  //         const orderId = transaction.order._id.toString();
-  //         console.log("4. About to call updatePaymentStatus with userId:", userId, typeof userId);
-          
-  //         await this.ordersService.updatePaymentStatus(
-  //           orderId,
-  //           PaymentStatus.PAID,
-  //           transaction._id.toString(),
-  //           userId,
-  //         )
-
-  //         // Get order details
-  //         console.log("5. About to call findOne with orderId:", orderId);
-  //         const order = await this.ordersService.findOne(orderId)
-
-  //         // Send email notification
-  //         console.log("6. About to call findById with userId:", userId);
-  //         const user = await this.usersService.findById(userId)
-  //         await this.emailService.sendPaymentReceipt(
-  //           {
-  //             amount: transaction.amount,
-  //             reference: verifyPaymentDto.reference,
-  //             date: new Date(),
-  //             orderNumber: order.orderNumber,
-  //           },
-  //           user,
-  //         )
-
-  //         // Send notification
-  //         await this.notificationsService.createNotification({
-  //           user: userId,
-  //           title: "Payment Verified",
-  //           message: `Your payment for order #${order.orderNumber} has been verified.`,
-  //           type: "payment",
-  //           reference: orderId,
-  //         })
-  //       }
-
-  //       // Log audit
-  //       await this.auditService.createAuditLog({
-  //         action: "PAYMENT_VERIFY",
-  //         userId,
-  //         module: "PAYMENTS",
-  //         description: `Payment verified for transaction ${transaction.transactionId}`,
-  //       })
-
-  //       return {
-  //         success: true,
-  //         message: "Payment verified successfully",
-  //         data: {
-  //           transactionId: transaction.transactionId,
-  //           status: TransactionStatus.SUCCESSFUL,
-  //         },
-  //       }
-  //     } else {
-  //       // Update transaction status
-  //       await this.transactionsService.updateStatus(transaction._id.toString(), TransactionStatus.FAILED)
-
-  //       return {
-  //         success: false,
-  //         message: "Payment verification failed",
-  //         data: {
-  //           transactionId: transaction.transactionId,
-  //           status: TransactionStatus.FAILED,
-  //         },
-  //       }
-  //     }
-  //   }
-
-  //   // For other payment methods
-  //   return {
-  //     success: false,
-  //     message: "Payment method not supported for verification",
-  //   }
-  // }
-
 
   async verifyPayment(verifyPaymentDto: VerifyPaymentDto, userId: string) {
     // Get transaction details
@@ -475,6 +285,87 @@ export class PaymentsService {
       // Transaction not found, log the webhook for manual review
       console.error("Webhook received for unknown transaction:", data)
       return { received: true, error: "Transaction not found" }
+    }
+  }
+
+  async getAllPayments(userId: string, options: PaymentFilterOptions) {
+    try {
+      // Check if user exists
+      const user = await this.usersService.findById(userId);
+      if (!user) {
+        throw new ForbiddenException('User not found');
+      }
+
+      // Build filter query
+      const filter: any = { user: userId };
+
+      // Add status filter if provided
+      if (options.status) {
+        filter.status = options.status;
+      }
+
+      // Add payment method filter if provided
+      if (options.paymentMethod) {
+        filter.paymentMethod = options.paymentMethod;
+      }
+
+      // Add date range filter if provided
+      if (options.startDate || options.endDate) {
+        filter.createdAt = {};
+        
+        if (options.startDate) {
+          filter.createdAt.$gte = new Date(options.startDate);
+        }
+        
+        if (options.endDate) {
+          filter.createdAt.$lte = new Date(options.endDate);
+        }
+      }
+
+      // Calculate pagination
+      const skip = (options.page - 1) * options.limit;
+      
+      // Get total count for pagination
+      // const totalCount = await this.transactionsService.countDocuments(filter);
+      const totalCount = await this.transactionsService.getCount(filter);
+      
+      // Get transactions with pagination
+      // const transactions = await this.transactionsService.findAll(filter, {
+      //   skip,
+      //   limit: options.limit,
+      //   sort: { createdAt: -1 } // Sort by most recent first
+      // });
+// If findAll accepts options as part of the filter object
+        const transactions = await this.transactionsService.findAll({
+          ...filter,
+          skip,
+          limit: options.limit,
+          sort: { createdAt: -1 }
+        });
+
+      // Log audit
+      await this.auditService.createAuditLog({
+        action: "VIEW_PAYMENTS",
+        userId,
+        module: "PAYMENTS",
+        description: `User viewed payments list`,
+      });
+
+      return {
+        success: true,
+        data: {
+          transactions,
+          pagination: {
+            total: totalCount,
+            page: options.page,
+            limit: options.limit,
+            pages: Math.ceil(totalCount / options.limit)
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching payments:', error);
+      throw error;
     }
   }
 
