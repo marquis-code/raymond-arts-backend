@@ -24,6 +24,7 @@ import { AuthModule } from "./auth/auth.module"
 import { ImagesModule } from "./images/images.module"
 import { UploadModule } from "./upload/upload.module"
 import { ShippingTaxModule } from "./shipping-tax/shipping-tax.module"
+import { CoursesModule } from './courses/courses.module';
 
 @Module({
   imports: [
@@ -97,7 +98,8 @@ import { ShippingTaxModule } from "./shipping-tax/shipping-tax.module"
     AuditModule,
     CloudinaryModule,
     EmailModule,
-    ShippingTaxModule
+    ShippingTaxModule,
+    CoursesModule
   ],
 })
 export class AppModule {}
