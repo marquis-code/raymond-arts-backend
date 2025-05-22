@@ -39,7 +39,8 @@ import {
     @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input' })
     @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
     async createCourse(@Body() createCourseDto: CreateCourseDto, @Request() req) {
-      return this.coursesService.createCourse(createCourseDto, req.user.userId);
+      console.log(req.user, 'user hee')
+      return this.coursesService.createCourse(createCourseDto, req.user.sub);
     }
   
 
@@ -70,35 +71,6 @@ async findAllCourses(
   // Pass all query parameters as filters
   return this.coursesService.findAllCourses(pageNum, limitNum, query);
 }
-
-    // @Get()
-    // @ApiOperation({ summary: 'Get all courses with filtering options' })
-    // @ApiQuery({ name: 'page', required: false, type: Number })
-    // @ApiQuery({ name: 'limit', required: false, type: Number })
-    // @ApiQuery({ name: 'status', required: false, enum: ['draft', 'published', 'archived'] })
-    // @ApiQuery({ name: 'instructor', required: false })
-    // @ApiQuery({ name: 'level', required: false, enum: ['beginner', 'intermediate', 'advanced'] })
-    // @ApiQuery({ name: 'minPrice', required: false, type: Number })
-    // @ApiQuery({ name: 'maxPrice', required: false, type: Number })
-    // @ApiQuery({ name: 'search', required: false })
-    // @ApiQuery({ name: 'tags', required: false })
-    // @ApiQuery({ name: 'isFeatured', required: false, type: Boolean })
-    // @ApiResponse({ status: HttpStatus.OK, description: 'Courses retrieved successfully' })
-    // async findAllCourses(
-    //   @Query('page') page?: string,
-    //   @Query('limit') limit?: string,
-    //   @Query() query?: any,
-    // ) {
-    //   // Fix 1: Extract filter parameters from query
-    //   const { page: _, limit: __, ...filters } = query;
-      
-    //   // Fix 2: Convert page and limit to numbers with defaults
-    //   const pageNum = page ? parseInt(page, 10) : 1;
-    //   const limitNum = limit ? parseInt(limit, 10) : 10;
-      
-    //   // Fix 3: Call the service with the correct parameters
-    //   return this.coursesService.findAllCourses(pageNum, limitNum, filters);
-    // }
   
     @Get('popular')
     @ApiOperation({ summary: 'Get popular courses' })
@@ -172,7 +144,7 @@ async findAllCourses(
       @Body() updateCourseDto: UpdateCourseDto,
       @Request() req,
     ) {
-      return this.coursesService.updateCourse(id, updateCourseDto, req.user.userId);
+      return this.coursesService.updateCourse(id, updateCourseDto, req.user.sub);
     }
   
     @Delete(':id')
@@ -185,7 +157,7 @@ async findAllCourses(
     @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
     @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
     async deleteCourse(@Param('id') id: string, @Request() req) {
-      return this.coursesService.deleteCourse(id, req.user.userId);
+      return this.coursesService.deleteCourse(id, req.user.sub);
     }
   
     // Section endpoints
@@ -199,7 +171,7 @@ async findAllCourses(
     @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
     @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
     async createSection(@Body() createSectionDto: CreateSectionDto, @Request() req) {
-      return this.coursesService.createSection(createSectionDto, req.user.userId);
+      return this.coursesService.createSection(createSectionDto, req.user.sub);
     }
   
     @Patch('sections/:id')
@@ -216,7 +188,7 @@ async findAllCourses(
       @Body() updateSectionDto: any,
       @Request() req,
     ) {
-      return this.coursesService.updateSection(id, updateSectionDto, req.user.userId);
+      return this.coursesService.updateSection(id, updateSectionDto, req.user.sub);
     }
   
     @Delete('sections/:id')
@@ -229,7 +201,7 @@ async findAllCourses(
     @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
     @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
     async deleteSection(@Param('id') id: string, @Request() req) {
-      return this.coursesService.deleteSection(id, req.user.userId);
+      return this.coursesService.deleteSection(id, req.user.sub);
     }
   
     // Lesson endpoints
@@ -243,7 +215,7 @@ async findAllCourses(
     @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
     @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
     async createLesson(@Body() createLessonDto: CreateLessonDto, @Request() req) {
-      return this.coursesService.createLesson(createLessonDto, req.user.userId);
+      return this.coursesService.createLesson(createLessonDto, req.user.sub);
     }
   
     @Patch('lessons/:id')
@@ -260,7 +232,7 @@ async findAllCourses(
       @Body() updateLessonDto: any,
       @Request() req,
     ) {
-      return this.coursesService.updateLesson(id, updateLessonDto, req.user.userId);
+      return this.coursesService.updateLesson(id, updateLessonDto, req.user.sub);
     }
   
     @Delete('lessons/:id')
@@ -273,7 +245,7 @@ async findAllCourses(
     @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
     @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
     async deleteLesson(@Param('id') id: string, @Request() req) {
-      return this.coursesService.deleteLesson(id, req.user.userId);
+      return this.coursesService.deleteLesson(id, req.user.sub);
     }
 
 
@@ -287,7 +259,7 @@ async findAllCourses(
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
 async enrollInCourse(@Body() enrollCourseDto: EnrollCourseDto, @Request() req) {
   return this.coursesService.enrollUserInCourse(
-    req.user.userId,
+    req.user.sub,
     enrollCourseDto.courseId.toString(),
   );
 }
@@ -299,7 +271,7 @@ async enrollInCourse(@Body() enrollCourseDto: EnrollCourseDto, @Request() req) {
 @ApiResponse({ status: HttpStatus.OK, description: 'Enrollments retrieved successfully' })
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
 async getUserEnrollments(@Request() req) {
-  return this.coursesService.getUserEnrollments(req.user.userId);
+  return this.coursesService.getUserEnrollments(req.user.sub);
 }
 
 @Get('enrollments/course/:id')
@@ -311,7 +283,7 @@ async getUserEnrollments(@Request() req) {
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
 @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
 async getCourseEnrollments(@Param('id') id: string, @Request() req) {
-  return this.coursesService.getCourseEnrollments(id, req.user.userId);
+  return this.coursesService.getCourseEnrollments(id, req.user.sub);
 }
 
 @Post('progress')
@@ -325,7 +297,7 @@ async updateLessonProgress(
   @Request() req,
 ) {
   return this.coursesService.updateEnrollmentProgress(
-    req.user.userId,
+    req.user.sub,
     progressDto.courseId,
     progressDto.lessonId,
     progressDto.completed,
@@ -339,7 +311,7 @@ async updateLessonProgress(
 @ApiResponse({ status: HttpStatus.OK, description: 'Enrollment status retrieved' })
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
 async checkEnrollment(@Param('id') id: string, @Request() req) {
-  const isEnrolled = await this.coursesService.checkUserEnrollment(req.user.userId, id);
+  const isEnrolled = await this.coursesService.checkUserEnrollment(req.user.sub, id);
   return { isEnrolled };
 }
 
@@ -352,7 +324,7 @@ async checkEnrollment(@Param('id') id: string, @Request() req) {
 @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Invalid input' })
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
 async createReview(@Body() createReviewDto: CreateReviewDto, @Request() req) {
-  return this.coursesService.createReview(req.user.userId, createReviewDto);
+  return this.coursesService.createReview(req.user.sub, createReviewDto);
 }
 
 @Get('reviews/course/:id')
@@ -370,7 +342,7 @@ async getCourseReviews(@Param('id') id: string) {
 @ApiResponse({ status: HttpStatus.OK, description: 'Reviews retrieved successfully' })
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
 async getUserReviews(@Request() req) {
-  return this.coursesService.getUserReviews(req.user.userId);
+  return this.coursesService.getUserReviews(req.user.sub);
 }
 
 @Delete('reviews/:id')
@@ -382,7 +354,7 @@ async getUserReviews(@Request() req) {
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
 @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
 async deleteReview(@Param('id') id: string, @Request() req) {
-  return this.coursesService.deleteReview(id, req.user.userId);
+  return this.coursesService.deleteReview(id, req.user.sub);
 }
 
 @Post('certificates/:courseId')
@@ -393,7 +365,7 @@ async deleteReview(@Param('id') id: string, @Request() req) {
 @ApiResponse({ status: HttpStatus.BAD_REQUEST, description: 'Course not completed' })
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
 async generateCertificate(@Param('courseId') courseId: string, @Request() req) {
-  return this.coursesService.generateCertificate(req.user.userId, courseId);
+  return this.coursesService.generateCertificate(req.user.sub, courseId);
 }
 
 @Get('certificates/user')
@@ -403,7 +375,7 @@ async generateCertificate(@Param('courseId') courseId: string, @Request() req) {
 @ApiResponse({ status: HttpStatus.OK, description: 'Certificates retrieved successfully' })
 @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
 async getUserCertificates(@Request() req) {
-  return this.coursesService.getUserCertificates(req.user.userId);
+  return this.coursesService.getUserCertificates(req.user.sub);
 }
 
 @Get('certificates/verify/:number')

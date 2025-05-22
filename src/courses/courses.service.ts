@@ -144,15 +144,145 @@ async findSectionById(id: string): Promise<Section> {
   }
 
   async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
-    const course = await this.findCourseById(id);
+    console.log(userId, 'user id hehhehee');
     
-    // Check if user is the instructor of the course
-    if (course.instructor.toString() !== userId) {
+    const course = await this.coursesRepository.findCourseById(id);
+    
+    if (!course) {
+      throw new NotFoundException(`Course with ID ${id} not found`);
+    }
+    
+    // Check if the instructor field exists
+    if (!course.instructor) {
+      throw new ForbiddenException('Course has no assigned instructor');
+    }
+    
+    // Handle both populated and non-populated cases
+    let instructorId: string;
+    
+    // Check if instructor is a populated object or just an ObjectId
+    if (typeof course.instructor === 'object' && course.instructor !== null) {
+      // If it's a populated object, it might have _id
+      // Use type assertion to tell TypeScript this is a populated object
+      const populatedInstructor = course.instructor as any;
+      
+      if (populatedInstructor._id) {
+        instructorId = populatedInstructor._id.toString();
+      } else {
+        // If somehow it's an object without _id, use the object itself
+        instructorId = populatedInstructor.toString();
+      }
+    } else {
+      // If it's just an ObjectId
+      instructorId = course.instructor.toString();
+    }
+    
+    console.log('Instructor ID:', instructorId);
+    console.log('User ID:', userId);
+    
+    // Compare the IDs
+    if (instructorId !== userId) {
       throw new ForbiddenException('You are not authorized to update this course');
     }
     
     return this.coursesRepository.updateCourse(id, updateCourseDto);
   }
+
+  // async findCourseById(id: string, populate: boolean = true): Promise<Course> {
+  //   let query = this.coursesRepository.findById(id);
+    
+  //   if (populate) {
+  //     query = query.populate('instructor');
+  //   }
+    
+  //   const course = await query;
+    
+  //   if (!course) {
+  //     throw new NotFoundException(`Course with ID ${id} not found`);
+  //   }
+    
+  //   return course;
+  // }
+
+  // async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
+  //   console.log(userId, 'user id hehhehee');
+    
+  //   // Use the correct repository method
+  //   const course = await this.coursesRepository.findCourseById(id);
+    
+  //   if (!course) {
+  //     throw new NotFoundException(`Course with ID ${id} not found`);
+  //   }
+    
+  //   // Check if the instructor field exists
+  //   if (!course.instructor) {
+  //     throw new ForbiddenException('Course has no assigned instructor');
+  //   }
+    
+  //   // Extract the instructor ID from the populated object
+  //   const instructorId = course.instructor._id.toString();
+  //   console.log('Instructor ID:', instructorId);
+  //   console.log('User ID:', userId);
+    
+  //   // Compare the IDs
+  //   if (instructorId !== userId) {
+  //     throw new ForbiddenException('You are not authorized to update this course');
+  //   }
+    
+  //   return this.coursesRepository.updateCourse(id, updateCourseDto);
+  // }
+  
+  // async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
+  //   // Don't populate instructor when checking permissions
+  //   const course = await this.findCourseById(id, false);
+    
+  //   if (!course.instructor) {
+  //     throw new ForbiddenException('Course has no assigned instructor');
+  //   }
+    
+  //   // Now instructor is just an ObjectId
+  //   const instructorId = course.instructor.toString();
+    
+  //   if (instructorId !== userId) {
+  //     throw new ForbiddenException('You are not authorized to update this course');
+  //   }
+    
+  //   return this.coursesRepository.updateCourse(id, updateCourseDto);
+  // }
+
+//   async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
+//   console.log(userId, 'user id hehhehee');
+//   const course = await this.findCourseById(id);
+  
+//   // Check if course has an instructor
+//   if (!course.instructor) {
+//     throw new ForbiddenException('Course has no assigned instructor');
+//   }
+  
+//   // Convert the ObjectId to string for comparison
+//   const instructorIdString = course.instructor.toString();
+//   console.log('Instructor ID:', instructorIdString);
+//   console.log('User ID:', userId);
+  
+//   // Now compare the string representations
+//   if (instructorIdString !== userId) {
+//     throw new ForbiddenException('You are not authorized to update this course');
+//   }
+  
+//   return this.coursesRepository.updateCourse(id, updateCourseDto);
+// }
+
+  // async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
+  //   console.log(userId, 'user if hehhehee')
+  //   const course = await this.findCourseById(id);
+    
+  //   // Check if user is the instructor of the course
+  //   if (course.instructor !== userId) {
+  //     throw new ForbiddenException('You are not authorized to update this course');
+  //   }
+    
+  //   return this.coursesRepository.updateCourse(id, updateCourseDto);
+  // }
 
   async deleteCourse(id: string, userId: string): Promise<Course> {
     const course = await this.findCourseById(id);
