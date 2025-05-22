@@ -43,94 +43,6 @@ export class CoursesRepository {
     return newCourse.save();
   }
 
-//   async findAllCourses(
-//     query: any = {},
-//     page = 1,
-//     limit = 10,
-//     sort = { createdAt: -1 },
-//   ): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
-//     const skip = (page - 1) * limit;
-    
-//     // Build filter based on query parameters
-//     const filter: any = {};
-    
-//     if (query.status) {
-//       filter.status = query.status;
-//     }
-    
-//     if (query.instructor) {
-//       filter.instructor = new Types.ObjectId(query.instructor);
-//     }
-    
-//     if (query.level) {
-//       filter.level = query.level;
-//     }
-    
-//     if (query.isFeatured) {
-//       filter.isFeatured = query.isFeatured === 'true';
-//     }
-    
-//     if (query.minPrice !== undefined && query.maxPrice !== undefined) {
-//       filter.price = { 
-//         $gte: Number(query.minPrice), 
-//         $lte: Number(query.maxPrice) 
-//       };
-//     } else if (query.minPrice !== undefined) {
-//       filter.price = { $gte: Number(query.minPrice) };
-//     } else if (query.maxPrice !== undefined) {
-//       filter.price = { $lte: Number(query.maxPrice) };
-//     }
-    
-//     if (query.search) {
-//       filter.$text = { $search: query.search };
-//     }
-    
-//     if (query.tags) {
-//       const tags = Array.isArray(query.tags) ? query.tags : [query.tags];
-//       filter.tags = { $in: tags };
-//     }
-    
-//     const total = await this.courseModel.countDocuments(filter);
-//     const courses = await this.courseModel
-//       .find(filter)
-//       .sort(sort)
-//       .skip(skip)
-//       .limit(limit)
-//       .populate('instructor', 'name email')
-//       .exec();
-    
-//     return {
-//       courses,
-//       total,
-//       page,
-//       limit,
-//     };
-//   }
-
-// async findAllCourses(
-//     page: number = 1, 
-//     limit: number = 10, 
-//     sort: Record<string, SortOrder> = { createdAt: -1 as SortOrder }
-//   ): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
-//     const skip = (page - 1) * limit;
-//     const [courses, total] = await Promise.all([
-//       this.courseModel
-//         .find({ status: 'published' })
-//         .sort(sort)
-//         .skip(skip)
-//         .limit(limit)
-//         .populate('instructor', 'name email')
-//         .exec(),
-//       this.courseModel.countDocuments({ status: 'published' }).exec(),
-//     ]);
-
-//     return {
-//       courses,
-//       total,
-//       page,
-//       limit,
-//     };
-//   }
 
 async findAllCourses(
   page: number = 1, 
@@ -166,6 +78,13 @@ async findAllCourses(
       .skip(skip)
       .limit(limit)
       .populate('instructor', 'name email')
+      .populate({
+        path: 'sections',
+        populate: {
+          path: 'lessons',
+          model: 'Lesson'
+        }
+      })
       .exec(),
     this.courseModel.countDocuments(query).exec(),
   ]);
@@ -775,5 +694,30 @@ async updateSectionAddLesson(sectionId: ObjectIdType, lessonId: ObjectIdType): P
   }
   
   return updatedSection;
+}
+
+// Add this method to your courses repository
+async addSectionToCourse(courseId: string, sectionId: MongooseSchema.Types.ObjectId): Promise<Course> {
+  return this.courseModel.findByIdAndUpdate(
+    courseId,
+    { $push: { sections: sectionId } },
+    { new: true }
+  ).exec();
+}
+
+async updateCourseLessonStats(
+  courseId: MongooseSchema.Types.ObjectId,
+  additionalDuration: number
+): Promise<Course> {
+  return this.courseModel.findByIdAndUpdate(
+    courseId,
+    { 
+      $inc: { 
+        totalLessons: 1,
+        durationInMinutes: additionalDuration 
+      } 
+    },
+    { new: true }
+  ).exec();
 }
 }

@@ -104,7 +104,7 @@ export class CoursesService {
     }
 
     // Call the repository with the processed query, page, limit, and sort
-    return this.coursesRepository.findAllCourses(page, limit, sort, query);
+    return this.coursesRepository.findAllCourses(page, limit, sort, query)
   }
 
   // Fix 2: Add methods to get section and lesson by ID
@@ -211,33 +211,95 @@ export class CoursesService {
     return this.coursesRepository.deleteCourse(id);
   }
 
+  // async createSection(
+  //   createSectionDto: CreateSectionDto,
+  //   userId: string,
+  // ): Promise<Section> {
+  //   // Convert string to Schema.Types.ObjectId using our helper
+  //   const courseId = toSchemaObjectId(createSectionDto.course);
+
+  //   const course = await this.findCourseById(createSectionDto.course);
+
+  //   if (!course) {
+  //     throw new NotFoundException(`Course with ID not found`);
+  //   }
+
+  //   // Check if the instructor field exists
+  //   if (!course.instructor) {
+  //     throw new ForbiddenException('Course has no assigned instructor');
+  //   }
+
+  //   // Handle both populated and non-populated cases
+  //   let instructorId: string;
+
+  //   // Check if instructor is a populated object or just an ObjectId
+  //   if (typeof course.instructor === 'object' && course.instructor !== null) {
+  //     // If it's a populated object, it might have _id
+  //     // Use type assertion to tell TypeScript this is a populated object
+  //     const populatedInstructor = course.instructor as any;
+
+  //     if (populatedInstructor._id) {
+  //       instructorId = populatedInstructor._id.toString();
+  //     } else {
+  //       // If somehow it's an object without _id, use the object itself
+  //       instructorId = populatedInstructor.toString();
+  //     }
+  //   } else {
+  //     // If it's just an ObjectId
+  //     instructorId = course.instructor.toString();
+  //   }
+
+  //   console.log('Instructor ID:', instructorId);
+  //   console.log('User ID:', userId);
+
+  //   // Compare the IDs
+  //   if (instructorId !== userId) {
+  //     throw new ForbiddenException(
+  //       'You are not authorized to update this course',
+  //     );
+  //   }
+
+
+  //   // Map DTO properties to schema properties
+  //   const sectionData: Partial<Section> = {
+  //     title: createSectionDto.title,
+  //     description: createSectionDto.description,
+  //     order: createSectionDto.order,
+  //     course: courseId, // Now using Schema.Types.ObjectId
+  //     lessons: [],
+  //   };
+
+  //   // Use the repository to create the section
+  //   return this.coursesRepository.createSection(sectionData);
+  // }
+
   async createSection(
     createSectionDto: CreateSectionDto,
     userId: string,
   ): Promise<Section> {
     // Convert string to Schema.Types.ObjectId using our helper
     const courseId = toSchemaObjectId(createSectionDto.course);
-
+  
     const course = await this.findCourseById(createSectionDto.course);
-
+  
     if (!course) {
       throw new NotFoundException(`Course with ID not found`);
     }
-
+  
     // Check if the instructor field exists
     if (!course.instructor) {
       throw new ForbiddenException('Course has no assigned instructor');
     }
-
+  
     // Handle both populated and non-populated cases
     let instructorId: string;
-
+  
     // Check if instructor is a populated object or just an ObjectId
     if (typeof course.instructor === 'object' && course.instructor !== null) {
       // If it's a populated object, it might have _id
       // Use type assertion to tell TypeScript this is a populated object
       const populatedInstructor = course.instructor as any;
-
+  
       if (populatedInstructor._id) {
         instructorId = populatedInstructor._id.toString();
       } else {
@@ -248,18 +310,17 @@ export class CoursesService {
       // If it's just an ObjectId
       instructorId = course.instructor.toString();
     }
-
+  
     console.log('Instructor ID:', instructorId);
     console.log('User ID:', userId);
-
+  
     // Compare the IDs
     if (instructorId !== userId) {
       throw new ForbiddenException(
         'You are not authorized to update this course',
       );
     }
-
-
+  
     // Map DTO properties to schema properties
     const sectionData: Partial<Section> = {
       title: createSectionDto.title,
@@ -268,9 +329,15 @@ export class CoursesService {
       course: courseId, // Now using Schema.Types.ObjectId
       lessons: [],
     };
-
+  
     // Use the repository to create the section
-    return this.coursesRepository.createSection(sectionData);
+    const newSection = await this.coursesRepository.createSection(sectionData);
+    
+    // Update the course directly using the Mongoose model
+    // This bypasses the DTO validation
+    await this.coursesRepository.addSectionToCourse(createSectionDto.course, newSection._id);
+  
+    return newSection;
   }
 
   async createLesson(
@@ -280,26 +347,26 @@ export class CoursesService {
     // Convert strings to Schema.Types.ObjectId using our helper
     const courseId = toSchemaObjectId(createLessonDto.course);
     const sectionId = toSchemaObjectId(createLessonDto.section);
-
+  
     const course = await this.findCourseById(createLessonDto.course);
-
+  
     if (!course) {
       throw new NotFoundException(`Course with ID not found`);
     }
-
+  
     // Check if the instructor field exists
     if (!course.instructor) {
       throw new ForbiddenException('Course has no assigned instructor');
     }
-
+  
     let instructorId: string;
-
+  
     // Check if instructor is a populated object or just an ObjectId
     if (typeof course.instructor === 'object' && course.instructor !== null) {
       // If it's a populated object, it might have _id
       // Use type assertion to tell TypeScript this is a populated object
       const populatedInstructor = course.instructor as any;
-
+  
       if (populatedInstructor._id) {
         instructorId = populatedInstructor._id.toString();
       } else {
@@ -310,36 +377,36 @@ export class CoursesService {
       // If it's just an ObjectId
       instructorId = course.instructor.toString();
     }
-
+  
     console.log('Instructor ID:', instructorId);
     console.log('User ID:', userId);
-
-
+  
+  
     if (instructorId !== userId) {
       throw new ForbiddenException(
         'You are not authorized to add lessons to this course',
       );
     }
-
+  
     // Validate section belongs to course
     const sectionBelongsToCourse =
       await this.coursesRepository.validateSectionBelongsToCourse(
         createLessonDto.section,
         createLessonDto.course,
       );
-
+  
     if (!sectionBelongsToCourse.exists) {
       throw new NotFoundException(
         `Section with ID ${createLessonDto.section} not found`,
       );
     }
-
+  
     if (!sectionBelongsToCourse.belongsToCourse) {
       throw new BadRequestException(
         'Section does not belong to the specified course',
       );
     }
-
+  
     // Map DTO properties to schema properties
     const lessonData: Partial<Lesson> = {
       title: createLessonDto.title,
@@ -353,22 +420,125 @@ export class CoursesService {
       durationInMinutes: createLessonDto.durationInMinutes,
       isPreview: createLessonDto.isPreview,
     };
-
+  
     // Use the repository to create the lesson
     const savedLesson = await this.coursesRepository.createLesson(lessonData);
-
+  
     // Update the section to include this lesson - make sure _id exists
     if (!savedLesson._id) {
       throw new Error('Saved lesson does not have an _id');
     }
-
+  
+    // Add the lesson to the section
     await this.coursesRepository.updateSectionAddLesson(
       sectionId,
       savedLesson._id,
     );
-
+  
+    // Update the course's totalLessons count and durationInMinutes
+    await this.coursesRepository.updateCourseLessonStats(
+      courseId,
+      savedLesson.durationInMinutes || 0
+    );
+  
     return savedLesson;
   }
+  // async createLesson(
+  //   createLessonDto: CreateLessonDto,
+  //   userId: string,
+  // ): Promise<Lesson> {
+  //   // Convert strings to Schema.Types.ObjectId using our helper
+  //   const courseId = toSchemaObjectId(createLessonDto.course);
+  //   const sectionId = toSchemaObjectId(createLessonDto.section);
+
+  //   const course = await this.findCourseById(createLessonDto.course);
+
+  //   if (!course) {
+  //     throw new NotFoundException(`Course with ID not found`);
+  //   }
+
+  //   // Check if the instructor field exists
+  //   if (!course.instructor) {
+  //     throw new ForbiddenException('Course has no assigned instructor');
+  //   }
+
+  //   let instructorId: string;
+
+  //   // Check if instructor is a populated object or just an ObjectId
+  //   if (typeof course.instructor === 'object' && course.instructor !== null) {
+  //     // If it's a populated object, it might have _id
+  //     // Use type assertion to tell TypeScript this is a populated object
+  //     const populatedInstructor = course.instructor as any;
+
+  //     if (populatedInstructor._id) {
+  //       instructorId = populatedInstructor._id.toString();
+  //     } else {
+  //       // If somehow it's an object without _id, use the object itself
+  //       instructorId = populatedInstructor.toString();
+  //     }
+  //   } else {
+  //     // If it's just an ObjectId
+  //     instructorId = course.instructor.toString();
+  //   }
+
+  //   console.log('Instructor ID:', instructorId);
+  //   console.log('User ID:', userId);
+
+
+  //   if (instructorId !== userId) {
+  //     throw new ForbiddenException(
+  //       'You are not authorized to add lessons to this course',
+  //     );
+  //   }
+
+  //   // Validate section belongs to course
+  //   const sectionBelongsToCourse =
+  //     await this.coursesRepository.validateSectionBelongsToCourse(
+  //       createLessonDto.section,
+  //       createLessonDto.course,
+  //     );
+
+  //   if (!sectionBelongsToCourse.exists) {
+  //     throw new NotFoundException(
+  //       `Section with ID ${createLessonDto.section} not found`,
+  //     );
+  //   }
+
+  //   if (!sectionBelongsToCourse.belongsToCourse) {
+  //     throw new BadRequestException(
+  //       'Section does not belong to the specified course',
+  //     );
+  //   }
+
+  //   // Map DTO properties to schema properties
+  //   const lessonData: Partial<Lesson> = {
+  //     title: createLessonDto.title,
+  //     description: createLessonDto.description,
+  //     order: createLessonDto.order,
+  //     course: courseId, // Now using Schema.Types.ObjectId
+  //     section: sectionId, // Now using Schema.Types.ObjectId
+  //     type: createLessonDto.type,
+  //     videoUrl: createLessonDto.videoUrl,
+  //     content: createLessonDto.content,
+  //     durationInMinutes: createLessonDto.durationInMinutes,
+  //     isPreview: createLessonDto.isPreview,
+  //   };
+
+  //   // Use the repository to create the lesson
+  //   const savedLesson = await this.coursesRepository.createLesson(lessonData);
+
+  //   // Update the section to include this lesson - make sure _id exists
+  //   if (!savedLesson._id) {
+  //     throw new Error('Saved lesson does not have an _id');
+  //   }
+
+  //   await this.coursesRepository.updateSectionAddLesson(
+  //     sectionId,
+  //     savedLesson._id,
+  //   );
+
+  //   return savedLesson;
+  // }
 
   async updateSection(
     id: string,
