@@ -1,10 +1,12 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
+import mongoose from 'mongoose';
 
 export type LessonDocument = Lesson & Document;
 
 @Schema({ timestamps: true })
 export class Lesson {
+  _id: mongoose.Schema.Types.ObjectId; // Make this required, not optional,
   @Prop({ required: true })
   title: string;
 
@@ -15,10 +17,10 @@ export class Lesson {
   order: number;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Section', required: true })
-  section: MongooseSchema.Types.ObjectId;
+  section: mongoose.Schema.Types.ObjectId;
 
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Course', required: true })
-  course: MongooseSchema.Types.ObjectId;
+  course: mongoose.Schema.Types.ObjectId;
 
   @Prop({ enum: ['video', 'article', 'quiz'], default: 'video' })
   type: string;

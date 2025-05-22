@@ -171,6 +171,7 @@ async findAllCourses(
     @ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
     @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
     async createSection(@Body() createSectionDto: CreateSectionDto, @Request() req) {
+      console.log(createSectionDto, 'create section DTO', req.user.sub)
       return this.coursesService.createSection(createSectionDto, req.user.sub);
     }
   

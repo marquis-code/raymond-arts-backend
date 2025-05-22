@@ -11,6 +11,7 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { CreateSectionDto } from './dto/create-section.dto';
 import { CreateLessonDto } from './dto/create-lesson.dto';
+import { ObjectIdType } from '../common/types/mongoose-types';
 import slugify from 'slugify';
 
 @Injectable()
@@ -244,22 +245,22 @@ async findAllCourses(
   }
 
   // Section methods
-  async createSection(createSectionDto: CreateSectionDto): Promise<Section> {
-    const newSection = new this.sectionModel({
-      ...createSectionDto,
-      course: createSectionDto.courseId,
-    });
+  // async createSection(createSectionDto: CreateSectionDto): Promise<Section> {
+  //   const newSection = new this.sectionModel({
+  //     ...createSectionDto,
+  //     course: createSectionDto.courseId,
+  //   });
     
-    const savedSection = await newSection.save();
+  //   const savedSection = await newSection.save();
     
-    // Update course to include this section
-    await this.courseModel.findByIdAndUpdate(
-      createSectionDto.courseId,
-      { $push: { sections: savedSection._id } },
-    );
+  //   // Update course to include this section
+  //   await this.courseModel.findByIdAndUpdate(
+  //     createSectionDto.courseId,
+  //     { $push: { sections: savedSection._id } },
+  //   );
     
-    return savedSection;
-  }
+  //   return savedSection;
+  // }
 
   async updateSection(id: string, updateSectionDto: any): Promise<Section> {
     return this.sectionModel
@@ -284,34 +285,44 @@ async findAllCourses(
     return this.sectionModel.findByIdAndDelete(id).exec();
   }
 
-  // Lesson methods
-  async createLesson(createLessonDto: CreateLessonDto): Promise<Lesson> {
-    const newLesson = new this.lessonModel({
-      ...createLessonDto,
-      section: createLessonDto.sectionId,
-      course: createLessonDto.courseId,
-    });
-    
-    const savedLesson = await newLesson.save();
-    
-    // Update section to include this lesson
-    await this.sectionModel.findByIdAndUpdate(
-      createLessonDto.sectionId,
-      { $push: { lessons: savedLesson._id } },
-    );
-    
-    // Update course total lessons and duration
-    const course = await this.courseModel.findById(createLessonDto.courseId);
-    await this.courseModel.findByIdAndUpdate(
-      createLessonDto.courseId,
-      { 
-        totalLessons: course.totalLessons + 1,
-        durationInMinutes: course.durationInMinutes + (createLessonDto.durationInMinutes || 0),
-      },
-    );
-    
-    return savedLesson;
+  async createSection(sectionData: Partial<Section>): Promise<Section> {
+    const newSection = new this.sectionModel(sectionData);
+    return newSection.save();
   }
+
+  async createLesson(lessonData: Partial<Lesson>): Promise<Lesson> {
+    const newLesson = new this.lessonModel(lessonData);
+    return newLesson.save();
+  }
+
+  // // Lesson methods
+  // async createLesson(createLessonDto: CreateLessonDto): Promise<Lesson> {
+  //   const newLesson = new this.lessonModel({
+  //     ...createLessonDto,
+  //     section: createLessonDto.sectionId,
+  //     course: createLessonDto.courseId,
+  //   });
+    
+  //   const savedLesson = await newLesson.save();
+    
+  //   // Update section to include this lesson
+  //   await this.sectionModel.findByIdAndUpdate(
+  //     createLessonDto.sectionId,
+  //     { $push: { lessons: savedLesson._id } },
+  //   );
+    
+  //   // Update course total lessons and duration
+  //   const course = await this.courseModel.findById(createLessonDto.courseId);
+  //   await this.courseModel.findByIdAndUpdate(
+  //     createLessonDto.courseId,
+  //     { 
+  //       totalLessons: course.totalLessons + 1,
+  //       durationInMinutes: course.durationInMinutes + (createLessonDto.durationInMinutes || 0),
+  //     },
+  //   );
+    
+  //   return savedLesson;
+  // }
 
   async updateLesson(id: string, updateLessonDto: any): Promise<Lesson> {
     const oldLesson = await this.lessonModel.findById(id);
@@ -736,7 +747,7 @@ async generateCertificate(userId: Types.ObjectId, courseId: Types.ObjectId): Pro
 //   return this.sectionModel.findByIdAndUpdate(id, updateSectionDto, { new: true }).exec();
 // }
 
-async validateSectionBelongsToCourse(sectionId: string, courseId: string): Promise<{ exists: boolean; belongsToCourse: boolean }> {
+async validateSectionBelongsToCourse(sectionId: ObjectIdType, courseId: ObjectIdType): Promise<{ exists: boolean; belongsToCourse: boolean }> {
   const section = await this.sectionModel.findById(sectionId).exec();
   
   if (!section) {
@@ -747,5 +758,22 @@ async validateSectionBelongsToCourse(sectionId: string, courseId: string): Promi
     exists: true, 
     belongsToCourse: section.course.toString() === courseId 
   };
+}
+
+async updateSectionAddLesson(sectionId: ObjectIdType, lessonId: ObjectIdType): Promise<Section> {
+  // const objectIdSectionId = toObjectId(sectionId);
+  // const objectIdLessonId = toObjectId(lessonId);
+  
+  const updatedSection = await this.sectionModel.findByIdAndUpdate(
+    sectionId,
+    { $push: { lessons: lessonId } },
+    { new: true }
+  ).exec();
+  
+  if (!updatedSection) {
+    throw new Error(`Section with ID ${sectionId} not found`);
+  }
+  
+  return updatedSection;
 }
 }

@@ -1,6 +1,6 @@
 import { IsString, IsNumber, IsOptional, IsMongoId } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Types } from 'mongoose';
+import { Transform } from 'class-transformer';
 
 export class CreateSectionDto {
   @ApiProperty({ description: 'Section title' })
@@ -16,7 +16,11 @@ export class CreateSectionDto {
   @IsNumber()
   order: number;
 
-  @ApiProperty({ description: 'Course ID this section belongs to' })
+  @ApiProperty({ 
+    description: 'Course ID this section belongs to',
+    example: '60d21b4667d0d8992e610c85'
+  })
   @IsMongoId()
-  courseId: Types.ObjectId;
+  @Transform(({ value }) => value.toString())
+  course: string; // Changed from courseId to course
 }

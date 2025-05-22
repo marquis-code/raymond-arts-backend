@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Types, SortOrder } from 'mongoose';
 import { CoursesRepository } from './courses.repository';
 import { CreateCourseDto } from './dto/create-course.dto';
@@ -9,163 +14,166 @@ import { CreateReviewDto } from './dto/create-review.dto';
 import { Course } from './schemas/course.schema';
 import { Section } from './schemas/section.schema';
 import { Lesson } from './schemas/lesson.schema';
+import { toSchemaObjectId } from '../common/types/mongoose-types';
 
 @Injectable()
 export class CoursesService {
   constructor(private readonly coursesRepository: CoursesRepository) {}
 
-  async createCourse(createCourseDto: CreateCourseDto, instructorId: string): Promise<Course> {
+  async createCourse(
+    createCourseDto: CreateCourseDto,
+    instructorId: string,
+  ): Promise<Course> {
     return this.coursesRepository.createCourse(
-      createCourseDto, 
-      new Types.ObjectId(instructorId)
+      createCourseDto,
+      new Types.ObjectId(instructorId),
     );
   }
 
-//   async findAllCourses(
-//     query: any = {},
-//     page = 1,
-//     limit = 10,
-//   ): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
-//     return this.coursesRepository.findAllCourses(query, page, limit);
-//   }
+  async findAllCourses(
+    page = 1,
+    limit = 10,
+    filters: Record<string, any> = {},
+  ): Promise<{
+    courses: Course[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    // Extract sort parameters if they exist
+    const { sortBy, sortOrder, ...queryFilters } = filters;
 
-// async findAllCourses(
-//     page = 1,
-//     limit = 10,
-//     sort: Record<string, SortOrder> = { createdAt: -1 as SortOrder }
-//   ): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
-//     return this.coursesRepository.findAllCourses(page, limit, sort);
-//   }
-
-async findAllCourses(
-  page = 1,
-  limit = 10,
-  filters: Record<string, any> = {}
-): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
-  // Extract sort parameters if they exist
-  const { sortBy, sortOrder, ...queryFilters } = filters;
-  
-  // Create a sort object
-  const sort: Record<string, any> = {};
-  if (sortBy) {
-    sort[sortBy] = sortOrder || 'desc';
-  } else {
-    sort.createdAt = -1; // Default sort
-  }
-  
-  // Process filters into a MongoDB query
-  const query: Record<string, any> = {};
-  
-  // Handle status filter
-  if (queryFilters.status) {
-    query.status = queryFilters.status;
-  }
-  
-  // Handle instructor filter
-  if (queryFilters.instructor) {
-    query.instructor = queryFilters.instructor;
-  }
-  
-  // Handle level filter
-  if (queryFilters.level) {
-    query.level = queryFilters.level;
-  }
-  
-  // Handle price range filter
-  if (queryFilters.minPrice !== undefined || queryFilters.maxPrice !== undefined) {
-    query.price = {};
-    if (queryFilters.minPrice !== undefined) {
-      query.price.$gte = parseFloat(queryFilters.minPrice);
+    // Create a sort object
+    const sort: Record<string, any> = {};
+    if (sortBy) {
+      sort[sortBy] = sortOrder || 'desc';
+    } else {
+      sort.createdAt = -1; // Default sort
     }
-    if (queryFilters.maxPrice !== undefined) {
-      query.price.$lte = parseFloat(queryFilters.maxPrice);
-    }
-  }
-  
-  // Handle search filter
-  if (queryFilters.search) {
-    query.$text = { $search: queryFilters.search };
-  }
-  
-  // Handle tags filter
-  if (queryFilters.tags) {
-    query.tags = { $in: Array.isArray(queryFilters.tags) ? queryFilters.tags : [queryFilters.tags] };
-  }
-  
-  // Handle featured filter
-  if (queryFilters.isFeatured !== undefined) {
-    query.isFeatured = queryFilters.isFeatured === 'true' || queryFilters.isFeatured === true;
-  }
-  
-  // Call the repository with the processed query, page, limit, and sort
-  return this.coursesRepository.findAllCourses(page, limit, sort, query);
-}
 
-    // Fix 2: Add methods to get section and lesson by ID
-async findSectionById(id: string): Promise<Section> {
-        const section = await this.coursesRepository.findSectionById(id);
-        
-        if (!section) {
-          throw new NotFoundException(`Section with ID ${id} not found`);
-        }
-        
-        return section;
+    // Process filters into a MongoDB query
+    const query: Record<string, any> = {};
+
+    // Handle status filter
+    if (queryFilters.status) {
+      query.status = queryFilters.status;
+    }
+
+    // Handle instructor filter
+    if (queryFilters.instructor) {
+      query.instructor = queryFilters.instructor;
+    }
+
+    // Handle level filter
+    if (queryFilters.level) {
+      query.level = queryFilters.level;
+    }
+
+    // Handle price range filter
+    if (
+      queryFilters.minPrice !== undefined ||
+      queryFilters.maxPrice !== undefined
+    ) {
+      query.price = {};
+      if (queryFilters.minPrice !== undefined) {
+        query.price.$gte = parseFloat(queryFilters.minPrice);
       }
-      
-      async findLessonById(id: string): Promise<Lesson> {
-        const lesson = await this.coursesRepository.findLessonById(id);
-        
-        if (!lesson) {
-          throw new NotFoundException(`Lesson with ID ${id} not found`);
-        }
-        
-        return lesson;
+      if (queryFilters.maxPrice !== undefined) {
+        query.price.$lte = parseFloat(queryFilters.maxPrice);
       }
-    
+    }
+
+    // Handle search filter
+    if (queryFilters.search) {
+      query.$text = { $search: queryFilters.search };
+    }
+
+    // Handle tags filter
+    if (queryFilters.tags) {
+      query.tags = {
+        $in: Array.isArray(queryFilters.tags)
+          ? queryFilters.tags
+          : [queryFilters.tags],
+      };
+    }
+
+    // Handle featured filter
+    if (queryFilters.isFeatured !== undefined) {
+      query.isFeatured =
+        queryFilters.isFeatured === 'true' || queryFilters.isFeatured === true;
+    }
+
+    // Call the repository with the processed query, page, limit, and sort
+    return this.coursesRepository.findAllCourses(page, limit, sort, query);
+  }
+
+  // Fix 2: Add methods to get section and lesson by ID
+  async findSectionById(id: string): Promise<Section> {
+    const section = await this.coursesRepository.findSectionById(id);
+
+    if (!section) {
+      throw new NotFoundException(`Section with ID ${id} not found`);
+    }
+
+    return section;
+  }
+
+  async findLessonById(id: string): Promise<Lesson> {
+    const lesson = await this.coursesRepository.findLessonById(id);
+
+    if (!lesson) {
+      throw new NotFoundException(`Lesson with ID ${id} not found`);
+    }
+
+    return lesson;
+  }
 
   async findCourseById(id: string): Promise<Course> {
     const course = await this.coursesRepository.findCourseById(id);
-    
+
     if (!course) {
       throw new NotFoundException(`Course with ID ${id} not found`);
     }
-    
+
     return course;
   }
 
   async findCourseBySlug(slug: string): Promise<Course> {
     const course = await this.coursesRepository.findCourseBySlug(slug);
-    
+
     if (!course) {
       throw new NotFoundException(`Course with slug ${slug} not found`);
     }
-    
+
     return course;
   }
 
-  async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
-    console.log(userId, 'user id hehhehee');
-    
+  async updateCourse(
+    id: string,
+    updateCourseDto: UpdateCourseDto,
+    userId: string,
+  ): Promise<Course> {
+
     const course = await this.coursesRepository.findCourseById(id);
-    
+
     if (!course) {
       throw new NotFoundException(`Course with ID ${id} not found`);
     }
-    
+
     // Check if the instructor field exists
     if (!course.instructor) {
       throw new ForbiddenException('Course has no assigned instructor');
     }
-    
+
     // Handle both populated and non-populated cases
     let instructorId: string;
-    
+
     // Check if instructor is a populated object or just an ObjectId
     if (typeof course.instructor === 'object' && course.instructor !== null) {
       // If it's a populated object, it might have _id
       // Use type assertion to tell TypeScript this is a populated object
       const populatedInstructor = course.instructor as any;
-      
+
       if (populatedInstructor._id) {
         instructorId = populatedInstructor._id.toString();
       } else {
@@ -176,169 +184,213 @@ async findSectionById(id: string): Promise<Section> {
       // If it's just an ObjectId
       instructorId = course.instructor.toString();
     }
-    
+
     console.log('Instructor ID:', instructorId);
     console.log('User ID:', userId);
-    
+
     // Compare the IDs
     if (instructorId !== userId) {
-      throw new ForbiddenException('You are not authorized to update this course');
+      throw new ForbiddenException(
+        'You are not authorized to update this course',
+      );
     }
-    
+
     return this.coursesRepository.updateCourse(id, updateCourseDto);
   }
 
-  // async findCourseById(id: string, populate: boolean = true): Promise<Course> {
-  //   let query = this.coursesRepository.findById(id);
-    
-  //   if (populate) {
-  //     query = query.populate('instructor');
-  //   }
-    
-  //   const course = await query;
-    
-  //   if (!course) {
-  //     throw new NotFoundException(`Course with ID ${id} not found`);
-  //   }
-    
-  //   return course;
-  // }
-
-  // async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
-  //   console.log(userId, 'user id hehhehee');
-    
-  //   // Use the correct repository method
-  //   const course = await this.coursesRepository.findCourseById(id);
-    
-  //   if (!course) {
-  //     throw new NotFoundException(`Course with ID ${id} not found`);
-  //   }
-    
-  //   // Check if the instructor field exists
-  //   if (!course.instructor) {
-  //     throw new ForbiddenException('Course has no assigned instructor');
-  //   }
-    
-  //   // Extract the instructor ID from the populated object
-  //   const instructorId = course.instructor._id.toString();
-  //   console.log('Instructor ID:', instructorId);
-  //   console.log('User ID:', userId);
-    
-  //   // Compare the IDs
-  //   if (instructorId !== userId) {
-  //     throw new ForbiddenException('You are not authorized to update this course');
-  //   }
-    
-  //   return this.coursesRepository.updateCourse(id, updateCourseDto);
-  // }
-  
-  // async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
-  //   // Don't populate instructor when checking permissions
-  //   const course = await this.findCourseById(id, false);
-    
-  //   if (!course.instructor) {
-  //     throw new ForbiddenException('Course has no assigned instructor');
-  //   }
-    
-  //   // Now instructor is just an ObjectId
-  //   const instructorId = course.instructor.toString();
-    
-  //   if (instructorId !== userId) {
-  //     throw new ForbiddenException('You are not authorized to update this course');
-  //   }
-    
-  //   return this.coursesRepository.updateCourse(id, updateCourseDto);
-  // }
-
-//   async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
-//   console.log(userId, 'user id hehhehee');
-//   const course = await this.findCourseById(id);
-  
-//   // Check if course has an instructor
-//   if (!course.instructor) {
-//     throw new ForbiddenException('Course has no assigned instructor');
-//   }
-  
-//   // Convert the ObjectId to string for comparison
-//   const instructorIdString = course.instructor.toString();
-//   console.log('Instructor ID:', instructorIdString);
-//   console.log('User ID:', userId);
-  
-//   // Now compare the string representations
-//   if (instructorIdString !== userId) {
-//     throw new ForbiddenException('You are not authorized to update this course');
-//   }
-  
-//   return this.coursesRepository.updateCourse(id, updateCourseDto);
-// }
-
-  // async updateCourse(id: string, updateCourseDto: UpdateCourseDto, userId: string): Promise<Course> {
-  //   console.log(userId, 'user if hehhehee')
-  //   const course = await this.findCourseById(id);
-    
-  //   // Check if user is the instructor of the course
-  //   if (course.instructor !== userId) {
-  //     throw new ForbiddenException('You are not authorized to update this course');
-  //   }
-    
-  //   return this.coursesRepository.updateCourse(id, updateCourseDto);
-  // }
-
   async deleteCourse(id: string, userId: string): Promise<Course> {
     const course = await this.findCourseById(id);
-    
+
     // Check if user is the instructor of the course
     if (course.instructor.toString() !== userId) {
-      throw new ForbiddenException('You are not authorized to delete this course');
+      throw new ForbiddenException(
+        'You are not authorized to delete this course',
+      );
     }
-    
+
     return this.coursesRepository.deleteCourse(id);
   }
 
-  // Section methods
-  async createSection(createSectionDto: CreateSectionDto, userId: string): Promise<Section> {
-    const course = await this.findCourseById(createSectionDto.courseId.toString());
-    
-    // Check if user is the instructor of the course
-    if (course.instructor.toString() !== userId) {
-      throw new ForbiddenException('You are not authorized to add sections to this course');
+  async createSection(
+    createSectionDto: CreateSectionDto,
+    userId: string,
+  ): Promise<Section> {
+    // Convert string to Schema.Types.ObjectId using our helper
+    const courseId = toSchemaObjectId(createSectionDto.course);
+
+    const course = await this.findCourseById(createSectionDto.course);
+
+    if (!course) {
+      throw new NotFoundException(`Course with ID not found`);
     }
-    
-    return this.coursesRepository.createSection(createSectionDto);
+
+    // Check if the instructor field exists
+    if (!course.instructor) {
+      throw new ForbiddenException('Course has no assigned instructor');
+    }
+
+    // Handle both populated and non-populated cases
+    let instructorId: string;
+
+    // Check if instructor is a populated object or just an ObjectId
+    if (typeof course.instructor === 'object' && course.instructor !== null) {
+      // If it's a populated object, it might have _id
+      // Use type assertion to tell TypeScript this is a populated object
+      const populatedInstructor = course.instructor as any;
+
+      if (populatedInstructor._id) {
+        instructorId = populatedInstructor._id.toString();
+      } else {
+        // If somehow it's an object without _id, use the object itself
+        instructorId = populatedInstructor.toString();
+      }
+    } else {
+      // If it's just an ObjectId
+      instructorId = course.instructor.toString();
+    }
+
+    console.log('Instructor ID:', instructorId);
+    console.log('User ID:', userId);
+
+    // Compare the IDs
+    if (instructorId !== userId) {
+      throw new ForbiddenException(
+        'You are not authorized to update this course',
+      );
+    }
+
+
+    // Map DTO properties to schema properties
+    const sectionData: Partial<Section> = {
+      title: createSectionDto.title,
+      description: createSectionDto.description,
+      order: createSectionDto.order,
+      course: courseId, // Now using Schema.Types.ObjectId
+      lessons: [],
+    };
+
+    // Use the repository to create the section
+    return this.coursesRepository.createSection(sectionData);
   }
 
-  // async updateSection(id: string, updateSectionDto: any, userId: string): Promise<Section> {
-  //   const section = await this.coursesRepository.sectionModel.findById(id).populate('course');
-    
-  //   if (!section) {
-  //     throw new NotFoundException(`Section with ID ${id} not found`);
-  //   }
-    
-  //   const course = await this.findCourseById(section.course.toString());
-    
-  //   // Check if user is the instructor of the course
-  //   if (course.instructor.toString() !== userId) {
-  //     throw new ForbiddenException('You are not authorized to update sections in this course');
-  //   }
-    
-  //   return this.coursesRepository.updateSection(id, updateSectionDto);
-  // }
+  async createLesson(
+    createLessonDto: CreateLessonDto,
+    userId: string,
+  ): Promise<Lesson> {
+    // Convert strings to Schema.Types.ObjectId using our helper
+    const courseId = toSchemaObjectId(createLessonDto.course);
+    const sectionId = toSchemaObjectId(createLessonDto.section);
 
-  async updateSection(id: string, updateSectionDto: any, userId: string): Promise<Section> {
+    const course = await this.findCourseById(createLessonDto.course);
+
+    if (!course) {
+      throw new NotFoundException(`Course with ID not found`);
+    }
+
+    // Check if the instructor field exists
+    if (!course.instructor) {
+      throw new ForbiddenException('Course has no assigned instructor');
+    }
+
+    let instructorId: string;
+
+    // Check if instructor is a populated object or just an ObjectId
+    if (typeof course.instructor === 'object' && course.instructor !== null) {
+      // If it's a populated object, it might have _id
+      // Use type assertion to tell TypeScript this is a populated object
+      const populatedInstructor = course.instructor as any;
+
+      if (populatedInstructor._id) {
+        instructorId = populatedInstructor._id.toString();
+      } else {
+        // If somehow it's an object without _id, use the object itself
+        instructorId = populatedInstructor.toString();
+      }
+    } else {
+      // If it's just an ObjectId
+      instructorId = course.instructor.toString();
+    }
+
+    console.log('Instructor ID:', instructorId);
+    console.log('User ID:', userId);
+
+
+    if (instructorId !== userId) {
+      throw new ForbiddenException(
+        'You are not authorized to add lessons to this course',
+      );
+    }
+
+    // Validate section belongs to course
+    const sectionBelongsToCourse =
+      await this.coursesRepository.validateSectionBelongsToCourse(
+        createLessonDto.section,
+        createLessonDto.course,
+      );
+
+    if (!sectionBelongsToCourse.exists) {
+      throw new NotFoundException(
+        `Section with ID ${createLessonDto.section} not found`,
+      );
+    }
+
+    if (!sectionBelongsToCourse.belongsToCourse) {
+      throw new BadRequestException(
+        'Section does not belong to the specified course',
+      );
+    }
+
+    // Map DTO properties to schema properties
+    const lessonData: Partial<Lesson> = {
+      title: createLessonDto.title,
+      description: createLessonDto.description,
+      order: createLessonDto.order,
+      course: courseId, // Now using Schema.Types.ObjectId
+      section: sectionId, // Now using Schema.Types.ObjectId
+      type: createLessonDto.type,
+      videoUrl: createLessonDto.videoUrl,
+      content: createLessonDto.content,
+      durationInMinutes: createLessonDto.durationInMinutes,
+      isPreview: createLessonDto.isPreview,
+    };
+
+    // Use the repository to create the lesson
+    const savedLesson = await this.coursesRepository.createLesson(lessonData);
+
+    // Update the section to include this lesson - make sure _id exists
+    if (!savedLesson._id) {
+      throw new Error('Saved lesson does not have an _id');
+    }
+
+    await this.coursesRepository.updateSectionAddLesson(
+      sectionId,
+      savedLesson._id,
+    );
+
+    return savedLesson;
+  }
+
+  async updateSection(
+    id: string,
+    updateSectionDto: any,
+    userId: string,
+  ): Promise<Section> {
     // Use the repository method to find the section
     const section = await this.coursesRepository.findSectionById(id);
-    
+
     if (!section) {
       throw new NotFoundException(`Section with ID ${id} not found`);
     }
-    
+
     const course = await this.findCourseById(section.course.toString());
-    
+
     // Check if user is the instructor of the course
     if (course.instructor.toString() !== userId) {
-      throw new ForbiddenException('You are not authorized to update sections in this course');
+      throw new ForbiddenException(
+        'You are not authorized to update sections in this course',
+      );
     }
-    
+
     return this.coursesRepository.updateSection(id, updateSectionDto);
   }
 
@@ -346,144 +398,55 @@ async findSectionById(id: string): Promise<Section> {
     const section = await this.findSectionById(id);
     const courseId = section.course.toString();
     const course = await this.findCourseById(courseId);
-    
+
     // Check if user is the instructor of the course
     if (course.instructor.toString() !== userId) {
-      throw new ForbiddenException('You are not authorized to delete sections in this course');
+      throw new ForbiddenException(
+        'You are not authorized to delete sections in this course',
+      );
     }
-    
+
     return this.coursesRepository.deleteSection(id);
   }
 
-//   async deleteSection(id: string, userId: string): Promise<Section> {
-//     const section = await this.coursesRepository.sectionModel.findById(id).populate('course');
-    
-//     if (!section) {
-//       throw new NotFoundException(`Section with ID ${id} not found`);
-//     }
-    
-//     const course = await this.findCourseById(section.course.toString());
-    
-//     // Check if user is the instructor of the course
-//     if (course.instructor.toString() !== userId) {
-//       throw new ForbiddenException('You are not authorized to delete sections in this course');
-//     }
-    
-//     return this.coursesRepository.deleteSection(id);
-//   }
-
-  // Lesson methods
-  // async createLesson(createLessonDto: CreateLessonDto, userId: string): Promise<Lesson> {
-  //   const course = await this.findCourseById(createLessonDto.courseId.toString());
-    
-  //   // Check if user is the instructor of the course
-  //   if (course.instructor.toString() !== userId) {
-  //     throw new ForbiddenException('You are not authorized to add lessons to this course');
-  //   }
-    
-  //   // Validate that the section belongs to the course
-  //   const section = await this.coursesRepository.sectionModel.findById(createLessonDto.sectionId);
-    
-  //   if (!section) {
-  //     throw new NotFoundException(`Section with ID ${createLessonDto.sectionId} not found`);
-  //   }
-    
-  //   if (section.course.toString() !== createLessonDto.courseId.toString()) {
-  //     throw new BadRequestException('Section does not belong to the specified course');
-  //   }
-    
-  //   return this.coursesRepository.createLesson(createLessonDto);
-  // }
-
-  async createLesson(createLessonDto: CreateLessonDto, userId: string): Promise<Lesson> {
-    const course = await this.findCourseById(createLessonDto.courseId.toString());
-    
-    // Check if user is the instructor of the course
-    if (course.instructor.toString() !== userId) {
-      throw new ForbiddenException('You are not authorized to add lessons to this course');
-    }
-    
-    // Use the repository method to validate section belongs to course
-    const sectionBelongsToCourse = await this.coursesRepository.validateSectionBelongsToCourse(
-      createLessonDto.sectionId.toString(),
-      createLessonDto.courseId.toString()
-    );
-    
-    if (!sectionBelongsToCourse.exists) {
-      throw new NotFoundException(`Section with ID ${createLessonDto.sectionId} not found`);
-    }
-    
-    if (!sectionBelongsToCourse.belongsToCourse) {
-      throw new BadRequestException('Section does not belong to the specified course');
-    }
-    
-    return this.coursesRepository.createLesson(createLessonDto);
-  }
-
-//   async updateLesson(id: string, updateLessonDto: any, userId: string): Promise<Lesson> {
-//     const lesson = await this.coursesRepository.lessonModel.findById(id).populate('course');
-    
-//     if (!lesson) {
-//       throw new NotFoundException(`Lesson with ID ${id} not found`);
-//     }
-    
-//     const course = await this.findCourseById(lesson.course.toString());
-    
-//     // Check if user is the instructor of the course
-//     if (course.instructor.toString() !== userId) {
-//       throw new ForbiddenException('You are not authorized to update lessons in this course');
-//     }
-    
-//     return this.coursesRepository.updateLesson(id, updateLessonDto);
-//   }
-
-async updateLesson(id: string, updateLessonDto: any, userId: string): Promise<Lesson> {
+  async updateLesson(
+    id: string,
+    updateLessonDto: any,
+    userId: string,
+  ): Promise<Lesson> {
     const lesson = await this.findLessonById(id);
     const courseId = lesson.course.toString();
     const course = await this.findCourseById(courseId);
-    
+
     // Check if user is the instructor of the course
     if (course.instructor.toString() !== userId) {
-      throw new ForbiddenException('You are not authorized to update lessons in this course');
+      throw new ForbiddenException(
+        'You are not authorized to update lessons in this course',
+      );
     }
-    
+
     return this.coursesRepository.updateLesson(id, updateLessonDto);
   }
 
   async deleteLesson(id: string, userId: string): Promise<Lesson> {
     // Use the repository method to find the lesson
     const lesson = await this.coursesRepository.findLessonById(id);
-    
+
     if (!lesson) {
       throw new NotFoundException(`Lesson with ID ${id} not found`);
     }
-    
+
     const course = await this.findCourseById(lesson.course.toString());
-    
+
     // Check if user is the instructor of the course
     if (course.instructor.toString() !== userId) {
-      throw new ForbiddenException('You are not authorized to delete lessons in this course');
+      throw new ForbiddenException(
+        'You are not authorized to delete lessons in this course',
+      );
     }
-    
+
     return this.coursesRepository.deleteLesson(id);
   }
-
-  // async deleteLesson(id: string, userId: string): Promise<Lesson> {
-  //   const lesson = await this.coursesRepository.lessonModel.findById(id).populate('course');
-    
-  //   if (!lesson) {
-  //     throw new NotFoundException(`Lesson with ID ${id} not found`);
-  //   }
-    
-  //   const course = await this.findCourseById(lesson.course.toString());
-    
-  //   // Check if user is the instructor of the course
-  //   if (course.instructor.toString() !== userId) {
-  //     throw new ForbiddenException('You are not authorized to delete lessons in this course');
-  //   }
-    
-  //   return this.coursesRepository.deleteLesson(id);
-  // }
 
   // Analytics methods
   async getPopularCourses(limit = 5): Promise<Course[]> {
@@ -506,35 +469,45 @@ async updateLesson(id: string, updateLessonDto: any, userId: string): Promise<Le
     return this.coursesRepository.searchCourses(query, limit);
   }
 
-  async enrollUserInCourse(userId: string, courseId: string, paymentId?: string): Promise<any> {
+  async enrollUserInCourse(
+    userId: string,
+    courseId: string,
+    paymentId?: string,
+  ): Promise<any> {
     const course = await this.findCourseById(courseId);
-    
+
     if (course.status !== 'published') {
       throw new BadRequestException('Cannot enroll in an unpublished course');
     }
-    
+
     return this.coursesRepository.enrollUserInCourse(
       new Types.ObjectId(userId),
       new Types.ObjectId(courseId),
       paymentId ? new Types.ObjectId(paymentId) : undefined,
     );
   }
-  
+
   async getUserEnrollments(userId: string): Promise<any[]> {
-    return this.coursesRepository.getUserEnrollments(new Types.ObjectId(userId));
+    return this.coursesRepository.getUserEnrollments(
+      new Types.ObjectId(userId),
+    );
   }
-  
+
   async getCourseEnrollments(courseId: string, userId: string): Promise<any[]> {
     const course = await this.findCourseById(courseId);
-    
+
     // Check if user is the instructor of the course
     if (course.instructor.toString() !== userId) {
-      throw new ForbiddenException('You are not authorized to view enrollments for this course');
+      throw new ForbiddenException(
+        'You are not authorized to view enrollments for this course',
+      );
     }
-    
-    return this.coursesRepository.getCourseEnrollments(new Types.ObjectId(courseId));
+
+    return this.coursesRepository.getCourseEnrollments(
+      new Types.ObjectId(courseId),
+    );
   }
-  
+
   async updateEnrollmentProgress(
     userId: string,
     courseId: string,
@@ -548,22 +521,30 @@ async updateLesson(id: string, updateLessonDto: any, userId: string): Promise<Le
       completed,
     );
   }
-  
-  async checkUserEnrollment(userId: string, courseId: string): Promise<boolean> {
+
+  async checkUserEnrollment(
+    userId: string,
+    courseId: string,
+  ): Promise<boolean> {
     return this.coursesRepository.checkUserEnrollment(
       new Types.ObjectId(userId),
       new Types.ObjectId(courseId),
     );
   }
 
-  async createReview(userId: string, createReviewDto: CreateReviewDto): Promise<any> {
+  async createReview(
+    userId: string,
+    createReviewDto: CreateReviewDto,
+  ): Promise<any> {
     // Check if course exists
-    const course = await this.findCourseById(createReviewDto.courseId.toString());
-    
+    const course = await this.findCourseById(
+      createReviewDto.courseId.toString(),
+    );
+
     if (course.status !== 'published') {
       throw new BadRequestException('Cannot review an unpublished course');
     }
-    
+
     return this.coursesRepository.createReview(
       new Types.ObjectId(userId),
       new Types.ObjectId(createReviewDto.courseId),
@@ -571,17 +552,22 @@ async updateLesson(id: string, updateLessonDto: any, userId: string): Promise<Le
       createReviewDto.comment,
     );
   }
-  
+
   async getCourseReviews(courseId: string): Promise<any[]> {
-    return this.coursesRepository.getCourseReviews(new Types.ObjectId(courseId));
+    return this.coursesRepository.getCourseReviews(
+      new Types.ObjectId(courseId),
+    );
   }
-  
+
   async getUserReviews(userId: string): Promise<any[]> {
     return this.coursesRepository.getUserReviews(new Types.ObjectId(userId));
   }
-  
+
   async deleteReview(reviewId: string, userId: string): Promise<any> {
-    return this.coursesRepository.deleteReview(reviewId, new Types.ObjectId(userId));
+    return this.coursesRepository.deleteReview(
+      reviewId,
+      new Types.ObjectId(userId),
+    );
   }
 
   async generateCertificate(userId: string, courseId: string): Promise<any> {
@@ -590,18 +576,21 @@ async updateLesson(id: string, updateLessonDto: any, userId: string): Promise<Le
       new Types.ObjectId(courseId),
     );
   }
-  
+
   async getUserCertificates(userId: string): Promise<any[]> {
-    return this.coursesRepository.getUserCertificates(new Types.ObjectId(userId));
+    return this.coursesRepository.getUserCertificates(
+      new Types.ObjectId(userId),
+    );
   }
-  
+
   async verifyCertificate(certificateNumber: string): Promise<any> {
-    const certificate = await this.coursesRepository.verifyCertificate(certificateNumber);
-    
+    const certificate =
+      await this.coursesRepository.verifyCertificate(certificateNumber);
+
     if (!certificate) {
       throw new NotFoundException('Certificate not found or invalid');
     }
-    
+
     return certificate;
   }
 }
