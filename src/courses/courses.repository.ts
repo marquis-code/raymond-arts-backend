@@ -106,30 +106,76 @@ export class CoursesRepository {
 //     };
 //   }
 
-async findAllCourses(
-    page: number = 1, 
-    limit: number = 10, 
-    sort: Record<string, SortOrder> = { createdAt: -1 as SortOrder }
-  ): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
-    const skip = (page - 1) * limit;
-    const [courses, total] = await Promise.all([
-      this.courseModel
-        .find({ status: 'published' })
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .populate('instructor', 'name email')
-        .exec(),
-      this.courseModel.countDocuments({ status: 'published' }).exec(),
-    ]);
+// async findAllCourses(
+//     page: number = 1, 
+//     limit: number = 10, 
+//     sort: Record<string, SortOrder> = { createdAt: -1 as SortOrder }
+//   ): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
+//     const skip = (page - 1) * limit;
+//     const [courses, total] = await Promise.all([
+//       this.courseModel
+//         .find({ status: 'published' })
+//         .sort(sort)
+//         .skip(skip)
+//         .limit(limit)
+//         .populate('instructor', 'name email')
+//         .exec(),
+//       this.courseModel.countDocuments({ status: 'published' }).exec(),
+//     ]);
 
-    return {
-      courses,
-      total,
-      page,
-      limit,
-    };
+//     return {
+//       courses,
+//       total,
+//       page,
+//       limit,
+//     };
+//   }
+
+async findAllCourses(
+  page: number = 1, 
+  limit: number = 10, 
+  sort: Record<string, any> = { createdAt: -1 },
+  query: Record<string, any> = {}
+): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
+  const skip = (page - 1) * limit;
+  
+  // Ensure sort values are valid MongoDB sort values (1, -1, 'asc', 'desc')
+  const validSort: Record<string, any> = {};
+  for (const [key, value] of Object.entries(sort)) {
+    // Convert string values to proper sort orders
+    if (value === 'asc' || value === 'ascending') {
+      validSort[key] = 1;
+    } else if (value === 'desc' || value === 'descending') {
+      validSort[key] = -1;
+    } else if (value === 1 || value === -1) {
+      validSort[key] = value;
+    }
+    // Ignore invalid sort values
   }
+  
+  // If no valid sort keys were provided, use default sort
+  if (Object.keys(validSort).length === 0) {
+    validSort.createdAt = -1;
+  }
+  
+  const [courses, total] = await Promise.all([
+    this.courseModel
+      .find(query)
+      .sort(validSort)
+      .skip(skip)
+      .limit(limit)
+      .populate('instructor', 'name email')
+      .exec(),
+    this.courseModel.countDocuments(query).exec(),
+  ]);
+
+  return {
+    courses,
+    total,
+    page,
+    limit,
+  };
+}
 
   async findCourseById(id: string): Promise<Course> {
     return this.courseModel

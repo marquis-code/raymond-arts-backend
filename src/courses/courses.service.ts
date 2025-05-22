@@ -29,13 +29,77 @@ export class CoursesService {
 //     return this.coursesRepository.findAllCourses(query, page, limit);
 //   }
 
+// async findAllCourses(
+//     page = 1,
+//     limit = 10,
+//     sort: Record<string, SortOrder> = { createdAt: -1 as SortOrder }
+//   ): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
+//     return this.coursesRepository.findAllCourses(page, limit, sort);
+//   }
+
 async findAllCourses(
-    page = 1,
-    limit = 10,
-    sort: Record<string, SortOrder> = { createdAt: -1 as SortOrder }
-  ): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
-    return this.coursesRepository.findAllCourses(page, limit, sort);
+  page = 1,
+  limit = 10,
+  filters: Record<string, any> = {}
+): Promise<{ courses: Course[]; total: number; page: number; limit: number }> {
+  // Extract sort parameters if they exist
+  const { sortBy, sortOrder, ...queryFilters } = filters;
+  
+  // Create a sort object
+  const sort: Record<string, any> = {};
+  if (sortBy) {
+    sort[sortBy] = sortOrder || 'desc';
+  } else {
+    sort.createdAt = -1; // Default sort
   }
+  
+  // Process filters into a MongoDB query
+  const query: Record<string, any> = {};
+  
+  // Handle status filter
+  if (queryFilters.status) {
+    query.status = queryFilters.status;
+  }
+  
+  // Handle instructor filter
+  if (queryFilters.instructor) {
+    query.instructor = queryFilters.instructor;
+  }
+  
+  // Handle level filter
+  if (queryFilters.level) {
+    query.level = queryFilters.level;
+  }
+  
+  // Handle price range filter
+  if (queryFilters.minPrice !== undefined || queryFilters.maxPrice !== undefined) {
+    query.price = {};
+    if (queryFilters.minPrice !== undefined) {
+      query.price.$gte = parseFloat(queryFilters.minPrice);
+    }
+    if (queryFilters.maxPrice !== undefined) {
+      query.price.$lte = parseFloat(queryFilters.maxPrice);
+    }
+  }
+  
+  // Handle search filter
+  if (queryFilters.search) {
+    query.$text = { $search: queryFilters.search };
+  }
+  
+  // Handle tags filter
+  if (queryFilters.tags) {
+    query.tags = { $in: Array.isArray(queryFilters.tags) ? queryFilters.tags : [queryFilters.tags] };
+  }
+  
+  // Handle featured filter
+  if (queryFilters.isFeatured !== undefined) {
+    query.isFeatured = queryFilters.isFeatured === 'true' || queryFilters.isFeatured === true;
+  }
+  
+  // Call the repository with the processed query, page, limit, and sort
+  return this.coursesRepository.findAllCourses(page, limit, sort, query);
+}
 
     // Fix 2: Add methods to get section and lesson by ID
 async findSectionById(id: string): Promise<Section> {

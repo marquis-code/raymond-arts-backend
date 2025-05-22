@@ -42,6 +42,35 @@ import {
       return this.coursesService.createCourse(createCourseDto, req.user.userId);
     }
   
+
+ @Get()
+@ApiOperation({ summary: 'Get all courses with filtering options' })
+@ApiQuery({ name: 'page', required: false, type: Number })
+@ApiQuery({ name: 'limit', required: false, type: Number })
+@ApiQuery({ name: 'status', required: false, enum: ['draft', 'published', 'archived'] })
+@ApiQuery({ name: 'instructor', required: false })
+@ApiQuery({ name: 'level', required: false, enum: ['beginner', 'intermediate', 'advanced'] })
+@ApiQuery({ name: 'minPrice', required: false, type: Number })
+@ApiQuery({ name: 'maxPrice', required: false, type: Number })
+@ApiQuery({ name: 'search', required: false })
+@ApiQuery({ name: 'tags', required: false })
+@ApiQuery({ name: 'isFeatured', required: false, type: Boolean })
+@ApiQuery({ name: 'sortBy', required: false, description: 'Field to sort by' })
+@ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'], description: 'Sort order' })
+@ApiResponse({ status: HttpStatus.OK, description: 'Courses retrieved successfully' })
+async findAllCourses(
+  @Query('page') page?: string,
+  @Query('limit') limit?: string,
+  @Query() query?: any,
+) {
+  // Convert page and limit to numbers with defaults
+  const pageNum = page ? parseInt(page, 10) : 1;
+  const limitNum = limit ? parseInt(limit, 10) : 10;
+  
+  // Pass all query parameters as filters
+  return this.coursesService.findAllCourses(pageNum, limitNum, query);
+}
+
     // @Get()
     // @ApiOperation({ summary: 'Get all courses with filtering options' })
     // @ApiQuery({ name: 'page', required: false, type: Number })
@@ -56,45 +85,20 @@ import {
     // @ApiQuery({ name: 'isFeatured', required: false, type: Boolean })
     // @ApiResponse({ status: HttpStatus.OK, description: 'Courses retrieved successfully' })
     // async findAllCourses(
-    //   @Query('page') page?: number,
-    //   @Query('limit') limit?: number,
+    //   @Query('page') page?: string,
+    //   @Query('limit') limit?: string,
     //   @Query() query?: any,
     // ) {
-    //   return this.coursesService.findAllCourses(
-    //     query,
-    //     page ? parseInt(page.toString()) : 1,
-    //     limit ? parseInt(limit.toString()) : 10,
-    //   );
+    //   // Fix 1: Extract filter parameters from query
+    //   const { page: _, limit: __, ...filters } = query;
+      
+    //   // Fix 2: Convert page and limit to numbers with defaults
+    //   const pageNum = page ? parseInt(page, 10) : 1;
+    //   const limitNum = limit ? parseInt(limit, 10) : 10;
+      
+    //   // Fix 3: Call the service with the correct parameters
+    //   return this.coursesService.findAllCourses(pageNum, limitNum, filters);
     // }
-
-    @Get()
-    @ApiOperation({ summary: 'Get all courses with filtering options' })
-    @ApiQuery({ name: 'page', required: false, type: Number })
-    @ApiQuery({ name: 'limit', required: false, type: Number })
-    @ApiQuery({ name: 'status', required: false, enum: ['draft', 'published', 'archived'] })
-    @ApiQuery({ name: 'instructor', required: false })
-    @ApiQuery({ name: 'level', required: false, enum: ['beginner', 'intermediate', 'advanced'] })
-    @ApiQuery({ name: 'minPrice', required: false, type: Number })
-    @ApiQuery({ name: 'maxPrice', required: false, type: Number })
-    @ApiQuery({ name: 'search', required: false })
-    @ApiQuery({ name: 'tags', required: false })
-    @ApiQuery({ name: 'isFeatured', required: false, type: Boolean })
-    @ApiResponse({ status: HttpStatus.OK, description: 'Courses retrieved successfully' })
-    async findAllCourses(
-      @Query('page') page?: string,
-      @Query('limit') limit?: string,
-      @Query() query?: any,
-    ) {
-      // Fix 1: Extract filter parameters from query
-      const { page: _, limit: __, ...filters } = query;
-      
-      // Fix 2: Convert page and limit to numbers with defaults
-      const pageNum = page ? parseInt(page, 10) : 1;
-      const limitNum = limit ? parseInt(limit, 10) : 10;
-      
-      // Fix 3: Call the service with the correct parameters
-      return this.coursesService.findAllCourses(pageNum, limitNum, filters);
-    }
   
     @Get('popular')
     @ApiOperation({ summary: 'Get popular courses' })
