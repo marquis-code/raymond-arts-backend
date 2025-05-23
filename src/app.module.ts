@@ -25,6 +25,9 @@ import { ImagesModule } from "./images/images.module"
 import { UploadModule } from "./upload/upload.module"
 import { ShippingTaxModule } from "./shipping-tax/shipping-tax.module"
 import { CoursesModule } from './courses/courses.module';
+import { EnquiriesModule } from './enquiries/enquiries.module';
+import { ChatModule } from './chat/chat.module';
+import { ChatNotificationsModule } from './chat-notifications/chat-notifications.module';
 
 @Module({
   imports: [
@@ -99,7 +102,10 @@ import { CoursesModule } from './courses/courses.module';
     CloudinaryModule,
     EmailModule,
     ShippingTaxModule,
-    CoursesModule
+    CoursesModule,
+    EnquiriesModule,
+    ChatModule,
+    ChatNotificationsModule
   ],
 })
 export class AppModule {}
