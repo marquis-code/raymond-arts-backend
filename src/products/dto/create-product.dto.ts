@@ -1,6 +1,46 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger"
-import { IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean, IsArray, Min, IsMongoId } from "class-validator"
+import { 
+  IsNotEmpty, IsString, IsNumber, IsOptional, IsBoolean, 
+  IsArray, Min, IsMongoId, IsEnum, ValidateNested, IsInt, Max 
+} from "class-validator"
 import { Type } from "class-transformer"
+
+export enum ProductSize {
+  SMALL = 'small',
+  MEDIUM = 'medium',
+  LARGE = 'large',
+}
+
+export class SizePriceDto {
+  @ApiProperty({ enum: ProductSize, example: ProductSize.MEDIUM })
+  @IsEnum(ProductSize)
+  @IsNotEmpty()
+  size: ProductSize;
+
+  @ApiProperty({ example: 299.99 })
+  @IsNumber()
+  @Min(0)
+  @Type(() => Number)
+  price: number;
+}
+
+export class ReviewDto {
+  @ApiProperty({ example: "60d21b4667d0d8992e610c85" })
+  @IsMongoId()
+  user: string;
+
+  @ApiProperty({ example: 5, minimum: 1, maximum: 5 })
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  @Type(() => Number)
+  rating: number;
+
+  @ApiProperty({ example: "Great product, highly recommended!" })
+  @IsString()
+  @IsNotEmpty()
+  comment: string;
+}
 
 export class CreateProductDto {
   @ApiProperty({ example: "Abstract Painting" })
@@ -100,5 +140,63 @@ export class CreateProductDto {
   @IsBoolean()
   @IsOptional()
   isBestseller?: boolean
-}
 
+  // New fields
+  @ApiPropertyOptional({ 
+    example: "This product is made with high-quality materials and crafted with attention to detail." 
+  })
+  @IsString()
+  @IsOptional()
+  productInfo?: string;
+
+  @ApiPropertyOptional({ 
+    example: "Returns accepted within 30 days of purchase. Item must be in original condition." 
+  })
+  @IsString()
+  @IsOptional()
+  returnPolicy?: string;
+
+  @ApiPropertyOptional({ 
+    example: "Free shipping on orders over $50. Standard delivery takes 3-5 business days." 
+  })
+  @IsString()
+  @IsOptional()
+  shippingInfo?: string;
+
+  @ApiPropertyOptional({ 
+    type: [SizePriceDto],
+    example: [
+      { size: ProductSize.SMALL, price: 249.99 },
+      { size: ProductSize.MEDIUM, price: 299.99 },
+      { size: ProductSize.LARGE, price: 349.99 }
+    ] 
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SizePriceDto)
+  @IsOptional()
+  sizes?: SizePriceDto[];
+
+  @ApiPropertyOptional({ 
+    example: "Limited time offer: 20% off until the end of the month!" 
+  })
+  @IsString()
+  @IsOptional()
+  promotionText?: string;
+
+  @ApiPropertyOptional({ 
+    type: [ReviewDto],
+    example: [
+      { 
+        user: "60d21b4667d0d8992e610c85", 
+        rating: 5, 
+        comment: "Excellent product! Exactly as described." 
+      }
+    ] 
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ReviewDto)
+  @IsOptional()
+  reviews?: ReviewDto[];
+}

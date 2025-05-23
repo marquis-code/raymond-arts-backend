@@ -24,6 +24,70 @@ export class ProductsService {
     private inventoryService: InventoryService,
   ) {}
 
+  // async createProduct(createProductDto: CreateProductDto, userId: string): Promise<Product> {
+  //   console.log('Received createProductDto:', createProductDto);
+    
+  //   // Extract data from the function object into a plain object
+  //   const productData = {
+  //     name: createProductDto.name,
+  //     description: createProductDto.description,
+  //     price: createProductDto.price,
+  //     discountPrice: createProductDto.discountPrice,
+  //     images: createProductDto.images,
+  //     category: createProductDto.category,
+  //     isAvailable: createProductDto.isAvailable,
+  //     weight: createProductDto.weight,
+  //     width: createProductDto.width,
+  //     height: createProductDto.height,
+  //     length: createProductDto.length,
+  //     tags: createProductDto.tags,
+  //     attributes: createProductDto.attributes,
+  //     relatedProducts: createProductDto.relatedProducts,
+  //     isFeatured: createProductDto.isFeatured,
+  //     isNew: createProductDto.isNew,
+  //     isBestseller: createProductDto.isBestseller
+  //   };
+    
+  //   console.log('Extracted product data:', productData);
+    
+  //   // Validate category if provided
+  //   if (productData.category) {
+  //     const categoryExists = await this.categoryModel.findById(productData.category).exec();
+  //     if (!categoryExists) {
+  //       throw new BadRequestException("Category not found");
+  //     }
+  //   }
+  
+  //   try {
+  //     // Create product using the create method
+  //     const savedProduct = await this.productModel.create(productData);
+  
+  //     // Create inventory entry for the product
+  //     await this.inventoryService.createInventoryItem({
+  //       product: savedProduct._id.toString(),
+  //       quantity: 0,
+  //       lowStockThreshold: 5,
+  //     });
+  
+  //     // Log audit
+  //     await this.auditService.createAuditLog({
+  //       action: "CREATE",
+  //       userId,
+  //       module: "PRODUCTS",
+  //       description: `Product created: ${savedProduct.name}`,
+  //       changes: JSON.stringify(productData),
+  //     });
+  
+  //     return savedProduct;
+  //   } catch (error) {
+  //     console.error('Error creating product:', error);
+  //     if (error.name === 'ValidationError') {
+  //       throw new BadRequestException(`Validation error: ${error.message}`);
+  //     }
+  //     throw error;
+  //   }
+  // }
+
   async createProduct(createProductDto: CreateProductDto, userId: string): Promise<Product> {
     console.log('Received createProductDto:', createProductDto);
     
@@ -45,7 +109,14 @@ export class ProductsService {
       relatedProducts: createProductDto.relatedProducts,
       isFeatured: createProductDto.isFeatured,
       isNew: createProductDto.isNew,
-      isBestseller: createProductDto.isBestseller
+      isBestseller: createProductDto.isBestseller,
+      // New fields
+      productInfo: createProductDto.productInfo,
+      returnPolicy: createProductDto.returnPolicy,
+      shippingInfo: createProductDto.shippingInfo,
+      sizes: createProductDto.sizes,
+      promotionText: createProductDto.promotionText,
+      reviews: createProductDto.reviews || [] // Initialize with empty array if not provided
     };
     
     console.log('Extracted product data:', productData);
@@ -86,6 +157,44 @@ export class ProductsService {
       }
       throw error;
     }
+  }
+  
+  async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
+    // Validate category if provided
+    if (updateProductDto.category) {
+      const categoryExists = await this.categoryModel.findById(updateProductDto.category);
+      if (!categoryExists) {
+        throw new BadRequestException("Category not found");
+      }
+    }
+  
+    // First check if product exists
+    const product = await this.productModel.findById(id);
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+  
+    // Update the product using simple document manipulation
+    // This avoids using methods that might still rely on callbacks internally
+    Object.keys(updateProductDto).forEach(key => {
+      if (updateProductDto[key] !== undefined) {
+        product[key] = updateProductDto[key];
+      }
+    });
+    
+    // Save the updated document
+    const updatedProduct = await product.save();
+  
+    // Log audit
+    await this.auditService.createAuditLog({
+      action: "UPDATE",
+      userId,
+      module: "PRODUCTS",
+      description: `Product updated: ${product.name}`,
+      changes: JSON.stringify(updateProductDto),
+    });
+  
+    return updatedProduct;
   }
 
   async findAllProducts(params: PaginationParams): Promise<PaginatedResult<Product>> {
@@ -128,21 +237,6 @@ export class ProductsService {
   }
 
 
-  // async findProductById(id: string): Promise<Product> {
-  //   // Check if the id is a valid MongoDB ObjectId
-  //   if (!mongoose.Types.ObjectId.isValid(id)) {
-  //     throw new BadRequestException(`Invalid product ID: ${id}`);
-  //   }
-  
-  //   const product = await this.productModel.findById(id).exec();
-    
-  //   if (!product) {
-  //     throw new NotFoundException(`Product with ID ${id} not found`);
-  //   }
-    
-  //   return product;
-  // }
-
   async findProductById(id: string): Promise<Product> {
     // Check if the id is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -161,43 +255,43 @@ export class ProductsService {
     return product;
   }
 
-  async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
-    // Validate category if provided
-    if (updateProductDto.category) {
-      const categoryExists = await this.categoryModel.findById(updateProductDto.category);
-      if (!categoryExists) {
-        throw new BadRequestException("Category not found");
-      }
-    }
+  // async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
+  //   // Validate category if provided
+  //   if (updateProductDto.category) {
+  //     const categoryExists = await this.categoryModel.findById(updateProductDto.category);
+  //     if (!categoryExists) {
+  //       throw new BadRequestException("Category not found");
+  //     }
+  //   }
   
-    // First check if product exists
-    const product = await this.productModel.findById(id);
-    if (!product) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
-    }
+  //   // First check if product exists
+  //   const product = await this.productModel.findById(id);
+  //   if (!product) {
+  //     throw new NotFoundException(`Product with ID ${id} not found`);
+  //   }
   
-    // Update the product using simple document manipulation
-    // This avoids using methods that might still rely on callbacks internally
-    Object.keys(updateProductDto).forEach(key => {
-      if (updateProductDto[key] !== undefined) {
-        product[key] = updateProductDto[key];
-      }
-    });
+  //   // Update the product using simple document manipulation
+  //   // This avoids using methods that might still rely on callbacks internally
+  //   Object.keys(updateProductDto).forEach(key => {
+  //     if (updateProductDto[key] !== undefined) {
+  //       product[key] = updateProductDto[key];
+  //     }
+  //   });
     
-    // Save the updated document
-    const updatedProduct = await product.save();
+  //   // Save the updated document
+  //   const updatedProduct = await product.save();
   
-    // Log audit
-    await this.auditService.createAuditLog({
-      action: "UPDATE",
-      userId,
-      module: "PRODUCTS",
-      description: `Product updated: ${product.name}`,
-      changes: JSON.stringify(updateProductDto),
-    });
+  //   // Log audit
+  //   await this.auditService.createAuditLog({
+  //     action: "UPDATE",
+  //     userId,
+  //     module: "PRODUCTS",
+  //     description: `Product updated: ${product.name}`,
+  //     changes: JSON.stringify(updateProductDto),
+  //   });
   
-    return updatedProduct;
-  }
+  //   return updatedProduct;
+  // }
 
   async removeProduct(id: string, userId: string): Promise<Product> {
     const product = await this.productModel.findById(id).exec()
