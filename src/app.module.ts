@@ -28,6 +28,7 @@ import { CoursesModule } from './courses/courses.module';
 import { EnquiriesModule } from './enquiries/enquiries.module';
 import { ChatModule } from './chat/chat.module';
 import { ChatNotificationsModule } from './chat-notifications/chat-notifications.module';
+import { CommissionModule } from "./commission/commission.module"
 
 @Module({
   imports: [
@@ -105,7 +106,8 @@ import { ChatNotificationsModule } from './chat-notifications/chat-notifications
     CoursesModule,
     EnquiriesModule,
     ChatModule,
-    ChatNotificationsModule
+    ChatNotificationsModule,
+    CommissionModule
   ],
 })
 export class AppModule {}
