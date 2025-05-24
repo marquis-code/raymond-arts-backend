@@ -30,14 +30,14 @@ export class ShippingTaxController {
   }
 
   @Get('shipping')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all shipping configurations' })
   getAllShippingConfigs() {
     return this.shippingTaxService.getAllShippingConfigs();
   }
 
   @Get('tax')
-  @Roles(UserRole.ADMIN)
+  // @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Get all tax configurations' })
   getAllTaxConfigs() {
     return this.shippingTaxService.getAllTaxConfigs();
