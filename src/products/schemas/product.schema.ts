@@ -8,12 +8,20 @@ export enum ProductSize {
   LARGE = 'large',
 }
 
+export enum ProductColor {
+  BLACK = 'black',
+  WHITE = 'white'
+}
+
 export class SizePrice {
   @Prop({ required: true, enum: ProductSize })
   size: ProductSize;
 
   @Prop({ required: true, min: 0 })
   price: number;
+
+  @Prop({ default: ProductColor.BLACK, enum: ProductColor })
+  color: ProductColor
 }
 
 export class Review {

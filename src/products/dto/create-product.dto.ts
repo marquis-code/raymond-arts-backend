@@ -12,6 +12,11 @@ export enum ProductSize {
   LARGE = 'large',
 }
 
+export enum ProductColor {
+  BLACK = 'black',
+  WHITE = 'white'
+}
+
 export class SizePriceDto {
   @ApiProperty({ enum: ProductSize, example: ProductSize.MEDIUM })
   @IsEnum(ProductSize)
@@ -23,6 +28,11 @@ export class SizePriceDto {
   @Min(0)
   @Type(() => Number)
   price: number;
+
+  @ApiPropertyOptional({ enum: ProductColor, example: ProductColor.BLACK, default: ProductColor.BLACK })
+  @IsEnum(ProductColor)
+  @IsOptional()
+  color?: ProductColor;
 }
 
 export class ReviewDto {
