@@ -3,6 +3,7 @@ import { Document, Schema as MongooseSchema } from "mongoose"
 
 export enum ProductSize {
   SMALL = 'small',
+  BASIC = 'basic',
   MEDIUM = 'medium',
   LARGE = 'large',
 }

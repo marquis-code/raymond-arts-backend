@@ -7,6 +7,7 @@ import { Type } from "class-transformer"
 
 export enum ProductSize {
   SMALL = 'small',
+  BASIC = 'basic',
   MEDIUM = 'medium',
   LARGE = 'large',
 }

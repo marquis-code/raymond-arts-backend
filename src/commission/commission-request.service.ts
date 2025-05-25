@@ -27,6 +27,7 @@ export class CommissionRequestService {
     return createdCommission.save();
   }
 
+
   async findAll(page: number = 1, limit: number = 10): Promise<{
     commissions: CommissionRequest[];
     total: number;
@@ -86,6 +87,7 @@ export class CommissionRequestService {
     }
     return updatedCommission;
   }
+
 
   async remove(id: string): Promise<void> {
     const result = await this.commissionRequestModel.findByIdAndDelete(id).exec();

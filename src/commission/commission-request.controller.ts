@@ -24,17 +24,8 @@ import {
   
     @Post()
     @UseInterceptors(FilesInterceptor('referencePhotos', 5)) // Max 5 files
-    async create(
-      @Body() createCommissionRequestDto: CreateCommissionRequestDto,
-      @UploadedFiles() files?: Express.Multer.File[],
-    ) {
-      // Handle file uploads (you'll need to implement file storage logic)
-      if (files && files.length > 0) {
-        // Store files and get their URLs/paths
-        const photoUrls = await this.storeFiles(files);
-        createCommissionRequestDto.referencePhotos = photoUrls;
-      }
-  
+    @Post()
+    async create(@Body() createCommissionRequestDto: CreateCommissionRequestDto) {
       return this.commissionRequestService.create(createCommissionRequestDto);
     }
   
