@@ -29,8 +29,14 @@ export class CreateCommissionRequestDto {
   @IsMongoId()
   drawingType: string;
 
+  @IsString()
+  mainPhoto: string;
+
   @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  referencePhotos?: string[];
+  @IsString()
+  optionalPhoto1: string;
+
+  @IsOptional()
+  @IsString()
+  optionalPhoto2: string;
 }

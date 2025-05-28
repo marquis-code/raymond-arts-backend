@@ -13,7 +13,6 @@ import {
     UseInterceptors,
     UploadedFiles,
   } from '@nestjs/common';
-  import { FilesInterceptor } from '@nestjs/platform-express';
   import { CommissionRequestService } from './commission-request.service';
   import { CreateCommissionRequestDto } from './dto/create-commission-request.dto';
   import { UpdateCommissionRequestDto } from './dto/update-commission-request.dto';
@@ -22,8 +21,6 @@ import {
   export class CommissionRequestController {
     constructor(private readonly commissionRequestService: CommissionRequestService) {}
   
-    @Post()
-    @UseInterceptors(FilesInterceptor('referencePhotos', 5)) // Max 5 files
     @Post()
     async create(@Body() createCommissionRequestDto: CreateCommissionRequestDto) {
       return this.commissionRequestService.create(createCommissionRequestDto);

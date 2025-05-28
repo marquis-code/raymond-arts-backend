@@ -111,4 +111,18 @@ export class CommissionRequestService {
       .sort({ createdAt: -1 })
       .exec();
   }
+
+  async findCommissionsWithPhotos(): Promise<CommissionRequest[]> {
+    return this.commissionRequestModel
+      .find({
+        $or: [
+          { mainPhoto: { $exists: true, $ne: null } },
+          { optionalPhoto1: { $exists: true, $ne: null } },
+          { optionalPhoto2: { $exists: true, $ne: null } }
+        ]
+      })
+      .populate('drawingType', 'name description')
+      .sort({ createdAt: -1 })
+      .exec();
+  }
 }

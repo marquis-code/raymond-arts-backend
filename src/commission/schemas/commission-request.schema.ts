@@ -37,8 +37,14 @@ export class CommissionRequest {
   @Prop({ type: Types.ObjectId, ref: 'DrawingType', required: true })
   drawingType: Types.ObjectId;
 
-  @Prop([String])
-  referencePhotos: string[];
+  @Prop({ required: false})
+  mainPhoto: string;
+
+  @Prop({ required: false})
+  optionalPhoto1?: string;
+
+  @Prop()
+  optionalPhoto2?: string;
 
   @Prop({ enum: CommissionStatus, default: CommissionStatus.PENDING })
   status: CommissionStatus;
