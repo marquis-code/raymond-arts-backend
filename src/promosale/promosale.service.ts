@@ -49,6 +49,7 @@ export class PromoSaleService {
     const promoSale = new this.promoSaleModel({
       ...createPromoSaleDto,
       startDate,
+      actionText: createPromoSaleDto.actionText,
       endDate,
       isLifetime: !endDate || createPromoSaleDto.isLifetime,
       status: initialStatus,
@@ -100,6 +101,38 @@ export class PromoSaleService {
     return promoSale;
   }
 
+  // async update(id: string, updatePromoSaleDto: UpdatePromoSaleDto): Promise<PromoSale> {
+  //   const existingPromo = await this.findOne(id);
+    
+  //   if (updatePromoSaleDto.startDate || updatePromoSaleDto.endDate) {
+  //     const startDate = updatePromoSaleDto.startDate 
+  //       ? new Date(updatePromoSaleDto.startDate) 
+  //       : existingPromo.startDate;
+  //     const endDate = updatePromoSaleDto.endDate 
+  //       ? new Date(updatePromoSaleDto.endDate) 
+  //       : existingPromo.endDate;
+
+  //     if (endDate && startDate >= endDate) {
+  //       throw new ConflictException('End date must be after start date');
+  //     }
+
+  //     // Check for overlapping promos (excluding current one)
+  //     const overlappingPromo = await this.findOverlappingPromo(startDate, endDate, id);
+  //     if (overlappingPromo) {
+  //       throw new ConflictException(
+  //         `Another promo "${overlappingPromo.title}" is already scheduled for this time period`
+  //       );
+  //     }
+  //   }
+
+  //   const updatedPromo = await this.promoSaleModel
+  //     .findByIdAndUpdate(id, updatePromoSaleDto, { new: true })
+  //     .exec();
+
+  //   this.logger.log(`Updated promo sale: ${updatedPromo.title}`);
+  //   return updatedPromo;
+  // }
+
   async update(id: string, updatePromoSaleDto: UpdatePromoSaleDto): Promise<PromoSale> {
     const existingPromo = await this.findOne(id);
     
@@ -124,11 +157,17 @@ export class PromoSaleService {
       }
     }
 
+    // Prepare update data with actionText if provided
+    const updateData = {
+      ...updatePromoSaleDto,
+      ...(updatePromoSaleDto.actionText && { actionText: updatePromoSaleDto.actionText })
+    };
+
     const updatedPromo = await this.promoSaleModel
-      .findByIdAndUpdate(id, updatePromoSaleDto, { new: true })
+      .findByIdAndUpdate(id, updateData, { new: true })
       .exec();
 
-    this.logger.log(`Updated promo sale: ${updatedPromo.title}`);
+    this.logger.log(`Updated promo sale: ${updatedPromo.title} with action text: ${updatedPromo.actionText}`);
     return updatedPromo;
   }
 
@@ -362,5 +401,27 @@ export class PromoSaleService {
       
       this.logger.log(`Kept active promo: "${keepActive.title}"`);
     }
+  }
+
+  // Helper method to get current active promo with its action text
+  async getCurrentPromoActionText(): Promise<string | null> {
+    const activePromo = await this.findActive();
+    return activePromo ? activePromo.actionText : null;
+  }
+
+  // Helper method to get all promos with their action texts
+  async getAllPromosWithActionText(): Promise<Array<{ id: string; title: string; actionText: string; status: PromoSaleStatus }>> {
+    const promos = await this.promoSaleModel
+      .find()
+      .select('title actionText status')
+      .sort({ priority: -1, createdAt: -1 })
+      .exec();
+
+    return promos.map(promo => ({
+      id: promo._id.toString(),
+      title: promo.title,
+      actionText: promo.actionText,
+      status: promo.status
+    }));
   }
 }

@@ -12,6 +12,9 @@ export class PromoSaleResponseDto {
   description: string;
 
   @ApiProperty()
+  actionText: string;
+
+  @ApiProperty()
   discountPercentage: number;
 
   @ApiProperty()

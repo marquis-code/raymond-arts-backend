@@ -18,6 +18,9 @@ export class PromoSale {
   @Prop({ required: true })
   description: string;
 
+  @Prop({ required: true })
+  actionText: string;
+
   @Prop({ required: true, min: 0, max: 100 })
   discountPercentage: number;
 

@@ -10,6 +10,10 @@ export class CreatePromoSaleDto {
   @IsString()
   description: string;
 
+  @ApiProperty({ description: 'Promo Sale Action Text' })
+  @IsString()
+  actionText: string;
+
   @ApiProperty({ description: 'Discount percentage (0-100)', minimum: 0, maximum: 100 })
   @IsNumber()
   @Min(0)
