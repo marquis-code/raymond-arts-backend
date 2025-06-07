@@ -75,11 +75,29 @@ export class PromoSaleService {
       .exec();
   }
 
-  async findActive(): Promise<PromoSale | null> {
+  // async findActive(): Promise<PromoSale | null> {
+  //   // Only return promos that are currently active and running
+  //   const now = new Date();
+    
+  //   return this.promoSaleModel
+  //     .findOne({ 
+  //       status: PromoSaleStatus.ACTIVE,
+  //       isActive: true,
+  //       startDate: { $lte: now }, // Must have started
+  //       $or: [
+  //         { isLifetime: true }, // Lifetime promos never expire
+  //         { endDate: { $gt: now } }, // Timed promos that haven't expired yet
+  //         { endDate: null } // Handle null end dates as lifetime
+  //       ]
+  //     })
+  //     .exec();
+  // }
+
+  async findActive(): Promise<PromoSale | {}> {
     // Only return promos that are currently active and running
     const now = new Date();
     
-    return this.promoSaleModel
+    const activePromo = await this.promoSaleModel
       .findOne({ 
         status: PromoSaleStatus.ACTIVE,
         isActive: true,
@@ -91,6 +109,8 @@ export class PromoSaleService {
         ]
       })
       .exec();
+  
+    return activePromo || {};
   }
 
   async findOne(id: string): Promise<PromoSale> {
