@@ -424,10 +424,10 @@ export class PromoSaleService {
   }
 
   // Helper method to get current active promo with its action text
-  async getCurrentPromoActionText(): Promise<string | null> {
-    const activePromo = await this.findActive();
-    return activePromo ? activePromo.actionText : null;
-  }
+  // async getCurrentPromoActionText(): Promise<string | null> {
+  //   const activePromo = await this.findActive();
+  //   return activePromo ? activePromo.actionText : null;
+  // }
 
   // Helper method to get all promos with their action texts
   async getAllPromosWithActionText(): Promise<Array<{ id: string; title: string; actionText: string; status: PromoSaleStatus }>> {
