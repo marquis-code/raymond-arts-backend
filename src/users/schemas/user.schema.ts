@@ -69,6 +69,40 @@ export class User extends Document {
 
   @Prop()
   lastLogin: Date
+
+  // Social Authentication Fields
+  @Prop()
+  picture?: string
+
+  @Prop({ unique: true, sparse: true })
+  googleId?: string
+
+  @Prop({ unique: true, sparse: true })
+  facebookId?: string
+
+  @Prop({ unique: true, sparse: true })
+  appleId?: string
+
+  @Prop()
+  googleAccessToken?: string
+
+  @Prop()
+  googleRefreshToken?: string
+
+  @Prop()
+  facebookAccessToken?: string
+
+  @Prop()
+  facebookRefreshToken?: string
+
+  @Prop()
+  appleAccessToken?: string
+
+  @Prop()
+  appleRefreshToken?: string
+
+  @Prop()
+  lastLoginAt?: Date
 }
 
 export const UserSchema = SchemaFactory.createForClass(User)
@@ -78,3 +112,8 @@ UserSchema.virtual("fullName").get(function () {
   return `${this.firstName} ${this.lastName}`
 })
 
+// Create indexes for social authentication
+UserSchema.index({ googleId: 1 }, { sparse: true })
+UserSchema.index({ facebookId: 1 }, { sparse: true })
+UserSchema.index({ appleId: 1 }, { sparse: true })
+UserSchema.index({ email: 1 }, { unique: true })

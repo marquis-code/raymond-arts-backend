@@ -1,5 +1,5 @@
 // import { ApiPropertyOptional } from "@nestjs/swagger"
-// import { IsEmail, IsEnum, IsOptional, IsString, IsBoolean } from "class-validator"
+// import { IsEmail, IsEnum, IsOptional, IsString, IsBoolean, MinLength } from "class-validator"
 // import { UserRole } from "../enums/user-role.enum"
 
 // export class UpdateUserDto {
@@ -76,7 +76,14 @@
 //   @ApiPropertyOptional()
 //   @IsOptional()
 //   resetTokenExpiry?: Date
+
+//   @ApiPropertyOptional()
+//   @IsString()
+//   @IsOptional()
+//   @MinLength(6)
+//   password?: string
 // }
+
 
 
 import { ApiPropertyOptional } from "@nestjs/swagger"
@@ -163,5 +170,59 @@ export class UpdateUserDto {
   @IsOptional()
   @MinLength(6)
   password?: string
-}
 
+  // Social Authentication Fields
+  @ApiPropertyOptional({ description: "Profile picture URL" })
+  @IsString()
+  @IsOptional()
+  picture?: string
+
+  @ApiPropertyOptional({ description: "Google account ID" })
+  @IsString()
+  @IsOptional()
+  googleId?: string
+
+  @ApiPropertyOptional({ description: "Facebook account ID" })
+  @IsString()
+  @IsOptional()
+  facebookId?: string
+
+  @ApiPropertyOptional({ description: "Apple account ID" })
+  @IsString()
+  @IsOptional()
+  appleId?: string
+
+  @ApiPropertyOptional({ description: "Google access token" })
+  @IsString()
+  @IsOptional()
+  googleAccessToken?: string
+
+  @ApiPropertyOptional({ description: "Google refresh token" })
+  @IsString()
+  @IsOptional()
+  googleRefreshToken?: string
+
+  @ApiPropertyOptional({ description: "Facebook access token" })
+  @IsString()
+  @IsOptional()
+  facebookAccessToken?: string
+
+  @ApiPropertyOptional({ description: "Facebook refresh token" })
+  @IsString()
+  @IsOptional()
+  facebookRefreshToken?: string
+
+  @ApiPropertyOptional({ description: "Apple access token" })
+  @IsString()
+  @IsOptional()
+  appleAccessToken?: string
+
+  @ApiPropertyOptional({ description: "Apple refresh token" })
+  @IsString()
+  @IsOptional()
+  appleRefreshToken?: string
+
+  @ApiPropertyOptional({ description: "Last login timestamp" })
+  @IsOptional()
+  lastLoginAt?: Date
+}
