@@ -57,8 +57,8 @@ import { UsersModule } from "../users/users.module"
 import { JwtStrategy } from "./strategies/jwt.strategy"
 import { LocalStrategy } from "./strategies/local.strategy"
 import { GoogleStrategy } from "./strategies/google.strategy"
-import { FacebookStrategy } from "./strategies/facebook.strategy"
-import { AppleStrategy } from "./strategies/apple.strategy"
+// import { FacebookStrategy } from "./strategies/facebook.strategy"
+// import { AppleStrategy } from "./strategies/apple.strategy"
 import { EmailModule } from "../email/email.module"
 import { AuditUtilityModule } from "../common/modules/audit-utility.module"
 
@@ -92,7 +92,9 @@ import { AuditUtilityModule } from "../common/modules/audit-utility.module"
       },
     }),
   ],
-  providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy, FacebookStrategy, AppleStrategy],
+  providers: [AuthService, JwtStrategy, LocalStrategy, GoogleStrategy, 
+    // FacebookStrategy, AppleStrategy
+  ],
   controllers: [AuthController],
   exports: [AuthService],
 })
