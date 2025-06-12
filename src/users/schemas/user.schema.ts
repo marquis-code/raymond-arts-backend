@@ -16,10 +16,10 @@ import { UserRole } from "../enums/user-role.enum"
   },
 })
 export class User extends Document {
-  @Prop({ required: true })
+  @Prop({ required: false })
   firstName: string
 
-  @Prop({ required: true })
+  @Prop({ required: false })
   lastName: string
 
   @Prop({ required: true, unique: true })
