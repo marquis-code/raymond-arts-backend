@@ -255,44 +255,6 @@ export class ProductsService {
     return product;
   }
 
-  // async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
-  //   // Validate category if provided
-  //   if (updateProductDto.category) {
-  //     const categoryExists = await this.categoryModel.findById(updateProductDto.category);
-  //     if (!categoryExists) {
-  //       throw new BadRequestException("Category not found");
-  //     }
-  //   }
-  
-  //   // First check if product exists
-  //   const product = await this.productModel.findById(id);
-  //   if (!product) {
-  //     throw new NotFoundException(`Product with ID ${id} not found`);
-  //   }
-  
-  //   // Update the product using simple document manipulation
-  //   // This avoids using methods that might still rely on callbacks internally
-  //   Object.keys(updateProductDto).forEach(key => {
-  //     if (updateProductDto[key] !== undefined) {
-  //       product[key] = updateProductDto[key];
-  //     }
-  //   });
-    
-  //   // Save the updated document
-  //   const updatedProduct = await product.save();
-  
-  //   // Log audit
-  //   await this.auditService.createAuditLog({
-  //     action: "UPDATE",
-  //     userId,
-  //     module: "PRODUCTS",
-  //     description: `Product updated: ${product.name}`,
-  //     changes: JSON.stringify(updateProductDto),
-  //   });
-  
-  //   return updatedProduct;
-  // }
-
   async removeProduct(id: string, userId: string): Promise<Product> {
     const product = await this.productModel.findById(id).exec()
     if (!product) {

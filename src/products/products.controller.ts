@@ -51,7 +51,9 @@ export class ProductsController {
   @ApiResponse({ status: 400, description: "Bad request" })
   @ApiResponse({ status: 401, description: "Unauthorized" })
   create(@Body() createProductDto: CreateProductDto, @Request() req) {
-    return this.productsService.createProduct(createProductDto, req.user.sub)
+    console.log(req.body, 'request body')
+    console.log(createProductDto, 'dto bofuy')
+    return this.productsService.createProduct(req.body, req.user.sub)
   }
 
   @Get()
@@ -130,7 +132,7 @@ export class ProductsController {
   @ApiResponse({ status: 404, description: "Product not found" })
   @ApiParam({ name: "id", description: "Product ID" })
   update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto, @Request() req) {
-    return this.productsService.updateProduct(id, updateProductDto, req.user.sub)
+    return this.productsService.updateProduct(id, req.body, req.user.sub)
   }
 
   @Delete(":id")
@@ -246,7 +248,7 @@ createCategory(@Body() createCategoryDtoInput: any, @Request() req) {
   @ApiResponse({ status: 404, description: "Category not found" })
   @ApiParam({ name: "id", description: "Category ID" })
   updateCategory(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto, @Request() req) {
-    return this.productsService.updateCategory(id, updateCategoryDto, req.user.sub)
+    return this.productsService.updateCategory(id, req.body, req.user.sub)
   }
 
   @Delete("categories/:id")
@@ -289,4 +291,3 @@ createCategory(@Body() createCategoryDtoInput: any, @Request() req) {
     return this.productsService.uploadCategoryImage(id, file, req.user.sub)
   }
 }
-

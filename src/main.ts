@@ -10,7 +10,7 @@ async function bootstrap() {
   const configService = app.get(ConfigService)
   
   // Global pipes
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: false, forbidNonWhitelisted: false }));
   
   // Middleware
   app.use(cookieParser())
