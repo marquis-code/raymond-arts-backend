@@ -6,12 +6,15 @@ import {
   IsNumber,
   IsString,
   IsEmail,
+  IsEnum,
   IsOptional,
   ValidateNested,
+  IsObject,
   Min,
   ArrayMinSize,
 } from "class-validator"
 import { Type } from "class-transformer"
+import { PaymentType } from "../schemas/order.schema"
 
 class OrderItemDto {
   @ApiProperty({ example: "60d21b4667d0d8992e610c85" })
@@ -24,6 +27,34 @@ class OrderItemDto {
   @Min(1)
   @Type(() => Number)
   quantity: number
+}
+
+
+
+export class InstallmentDetailsDto {
+  @IsNumber()
+  @Min(2)
+  numberOfInstallments: number
+
+  @IsNumber()
+  @Min(0)
+  downPaymentPercentage: number
+
+  @IsString()
+  @IsNotEmpty()
+  paymentFrequency: string
+
+  @IsString()
+  @IsNotEmpty()
+  paymentMethod: string
+
+  @IsOptional()
+  @IsString()
+  cardToken?: string
+
+  @IsOptional()
+  @IsObject()
+  paymentMethodDetails?: Record<string, any>
 }
 
 class AddressDto {
@@ -95,5 +126,14 @@ export class CreateOrderDto {
   @IsString()
   @IsOptional()
   notes?: string
+
+  @IsOptional()
+  @IsEnum(PaymentType)
+  paymentType?: PaymentType
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InstallmentDetailsDto)
+  installmentDetails?: InstallmentDetailsDto
 }
 

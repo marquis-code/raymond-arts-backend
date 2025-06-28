@@ -544,15 +544,8 @@ import {
       @Request() req: any,
     ): Promise<{ success: boolean; data: InstallmentPlan; message: string }> {
       try {
-        // Convert the DTO to the service interface format
-        const serviceDto = {
-          orderId: createInstallmentPlanDto.orderId,
-          numberOfInstallments: createInstallmentPlanDto.numberOfInstallments,
-          downPayment: createInstallmentPlanDto.downPayment,
-          startDate: createInstallmentPlanDto.startDate,
-        }
-  
-        const plan = await this.installmentsService.createInstallmentPlan(serviceDto, req.user.id)
+        // Use the DTO directly since it already contains all required properties
+        const plan = await this.installmentsService.createInstallmentPlan(createInstallmentPlanDto, req.user.id)
   
         return {
           success: true,
@@ -569,6 +562,36 @@ import {
         )
       }
     }
+    // async createInstallmentPlan(
+    //   @Body() createInstallmentPlanDto: CreateInstallmentPlanDto,
+    //   @Request() req: any,
+    // ): Promise<{ success: boolean; data: InstallmentPlan; message: string }> {
+    //   try {
+    //     // Convert the DTO to the service interface format
+    //     const serviceDto = {
+    //       orderId: createInstallmentPlanDto.orderId,
+    //       numberOfInstallments: createInstallmentPlanDto.numberOfInstallments,
+    //       downPayment: createInstallmentPlanDto.downPayment,
+    //       startDate: createInstallmentPlanDto.startDate,
+    //     }
+  
+    //     const plan = await this.installmentsService.createInstallmentPlan(serviceDto, req.user.id)
+  
+    //     return {
+    //       success: true,
+    //       data: plan,
+    //       message: "Installment plan created successfully",
+    //     }
+    //   } catch (error) {
+    //     throw new HttpException(
+    //       {
+    //         success: false,
+    //         message: error.message || "Failed to create installment plan",
+    //       },
+    //       error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+    //     )
+    //   }
+    // }
   
     @Get("plans/my")
     @ApiOperation({ summary: "Get current user installment plans" })
@@ -919,17 +942,23 @@ import {
         )
       }
     }
-  
+
+
     @Post('admin/reminders/send')
-    @UseGuards(RolesGuard)
-    @Roles(UserRole.ADMIN, UserRole.ADMIN)
     @ApiOperation({ summary: 'Manually send payment reminders (Admin only)' })
     @ApiResponse({ status: 200, description: 'Payment reminders sent successfully' })
     async sendPaymentReminders(
       @Body() reminderData: { planIds?: string[]; type: 'upcoming' | 'overdue' },
+      @Request() req: any,
     ): Promise<{ success: boolean; data: any; message: string }> {
       try {
-        const result = await this.installmentsService.sendManualReminders(reminderData)
+        // Add the admin user ID to the reminder data
+        const reminderDataWithUserId = {
+          ...reminderData,
+          userId: req.user.id,
+        }
+  
+        const result = await this.installmentsService.sendManualReminders(reminderDataWithUserId)
   
         return {
           success: true,
@@ -946,6 +975,33 @@ import {
         )
       }
     }
+  
+    // @Post('admin/reminders/send')
+    // @UseGuards(RolesGuard)
+    // @Roles(UserRole.ADMIN, UserRole.ADMIN)
+    // @ApiOperation({ summary: 'Manually send payment reminders (Admin only)' })
+    // @ApiResponse({ status: 200, description: 'Payment reminders sent successfully' })
+    // async sendPaymentReminders(
+    //   @Body() reminderData: { planIds?: string[]; type: 'upcoming' | 'overdue' },
+    // ): Promise<{ success: boolean; data: any; message: string }> {
+    //   try {
+    //     const result = await this.installmentsService.sendManualReminders(reminderData)
+  
+    //     return {
+    //       success: true,
+    //       data: result,
+    //       message: 'Payment reminders sent successfully',
+    //     }
+    //   } catch (error) {
+    //     throw new HttpException(
+    //       {
+    //         success: false,
+    //         message: error.message || 'Failed to send payment reminders',
+    //       },
+    //       error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+    //     )
+    //   }
+    // }
   
     @Get("admin/reports/collection")
     @UseGuards(RolesGuard)

@@ -11,7 +11,8 @@ import { AuditService } from "../audit/audit.service"
 import { NotificationsService } from "../notifications/notifications.service"
 import { TransactionType } from "../transactions/enums/transaction-type.enum"
 import { TransactionStatus } from "../transactions/enums/transaction-status.enum"
-import { PaymentStatus } from "../orders/enums/payment-status.enum"
+// import { PaymentStatus } from "../shared/enums/payment-status.enum"
+import { PaymentStatus } from "../shared/enums/payment-status.enum"
 
 interface PaymentFilterOptions {
   page: number;
@@ -50,7 +51,7 @@ export class PaymentsService {
 
     // Create transaction
     const transaction = await this.transactionsService.create({
-      user: userId,
+      user: userId,  
       type: TransactionType.PAYMENT,
       amount: order.total,
       status: TransactionStatus.PENDING,

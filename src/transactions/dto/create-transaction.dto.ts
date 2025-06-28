@@ -3,6 +3,7 @@ import { IsNotEmpty, IsEnum, IsNumber, IsMongoId, IsOptional, IsString, Min } fr
 import { Type } from "class-transformer"
 import { TransactionType } from "../enums/transaction-type.enum"
 import { TransactionStatus } from "../enums/transaction-status.enum"
+import { PaymentContext } from "../schemas/transaction.schema"
 
 export class CreateTransactionDto {
   @ApiProperty()
@@ -35,6 +36,23 @@ export class CreateTransactionDto {
   @IsMongoId()
   @IsOptional()
   invoice?: string
+
+    // New installment-related fields
+    @ApiPropertyOptional()
+    @IsMongoId()
+    @IsOptional()
+    installmentPlan?: string
+  
+    @ApiPropertyOptional({ enum: PaymentContext, default: PaymentContext.FULL_PAYMENT })
+    @IsEnum(PaymentContext)
+    @IsOptional()
+    paymentContext?: PaymentContext = PaymentContext.FULL_PAYMENT
+  
+    @ApiPropertyOptional()
+    @IsNumber()
+    @IsOptional()
+    @Type(() => Number)
+    installmentNumber?: number
 
   @ApiPropertyOptional()
   @IsString()
