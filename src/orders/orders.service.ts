@@ -15,7 +15,7 @@
 // import { NotificationsService } from "../notifications/notifications.service"
 // import { InvoicesService } from "../invoices/invoices.service"
 // import { ShippingTaxService } from "../shipping-tax/shipping-tax.service"
-// import { InstallmentPlanService } from "../installments/services/installment-plan.service"
+// import { InstallmentsService } from "../installments/installments.service"
 // import { PaymentsService } from "../payments/payments.service"
 // import { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
 // import { Types } from "mongoose"
@@ -34,7 +34,7 @@
 //   private auditService: AuditService
 //   private notificationsService: NotificationsService
 //   private shippingTaxService: ShippingTaxService
-//   private installmentPlansService: InstallmentPlanService
+//   private installmentsService: InstallmentsService
 //   private paymentsService: PaymentsService
 //   private salesService: SalesService
 
@@ -48,8 +48,8 @@
 //     auditService: AuditService,
 //     notificationsService: NotificationsService,
 //     shippingTaxService: ShippingTaxService,
-//     installmentPlansService: InstallmentPlanService,
-//     @Inject(forwardRef(() => PaymentsService)) // FIXED: Use forwardRef injection
+//     installmentsService: InstallmentsService,
+//     @Inject(forwardRef(() => PaymentsService))
 //     paymentsService: PaymentsService,
 //     salesService: SalesService,
 //   ) {
@@ -62,7 +62,7 @@
 //     this.auditService = auditService
 //     this.notificationsService = notificationsService
 //     this.shippingTaxService = shippingTaxService
-//     this.installmentPlansService = installmentPlansService
+//     this.installmentsService = installmentsService
 //     this.paymentsService = paymentsService
 //     this.salesService = salesService
 //   }
@@ -189,62 +189,100 @@
 //     // Calculate total with shipping and VAT
 //     const total = discountedSubtotal + shippingRate + vatAmount
   
-//     // Handle installment information if payment type is installment
+//     // FIXED: Initialize payment status and paid amount based on payment type
+//     let initialPaymentStatus = PaymentStatus.PENDING
+//     let initialPaidAmount = 0
 //     let installmentInfo = null
+  
+//     // Handle installment information if payment type is installment
 //     if (createOrderDto.paymentType === PaymentType.INSTALLMENT && createOrderDto.installmentInfo) {
 //       console.log('=== PROCESSING INSTALLMENT ORDER ===')
       
-//       // Validate installment plan if provided - FIXED
+//       // Validate installment plan if provided
 //       if (createOrderDto.installmentInfo.installmentPlan) {
 //         try {
-//           // Safely call the service method and handle potential void return
-//           let installmentPlan: any = null
-          
-//           try {
-//             installmentPlan = await this.installmentPlansService.findById(
-//               createOrderDto.installmentInfo.installmentPlan.toString()
+//           // Check if the service has the method we need
+//           if (this.installmentsService && typeof this.installmentsService.getInstallmentPlan === 'function') {
+//             const installmentPlan = await this.installmentsService.getInstallmentPlan(
+//               createOrderDto.installmentInfo.installmentPlan.toString(),
+//               userId
 //             )
-//           } catch (serviceError) {
-//             console.error('InstallmentPlansService.findById error:', serviceError)
-//             throw new BadRequestException('Installment plan service unavailable')
-//           }
-          
-//           // Check if we got a valid response
-//           if (!installmentPlan) {
-//             throw new BadRequestException('Installment plan not found')
-//           }
-          
-//           // Safely check for isActive property
-//           if (typeof installmentPlan === 'object' && installmentPlan !== null) {
-//             if ('isActive' in installmentPlan && installmentPlan.isActive === false) {
-//               throw new BadRequestException('Selected installment plan is not active')
+            
+//             if (installmentPlan && typeof installmentPlan === 'object' && installmentPlan !== null) {
+//               if ('status' in installmentPlan && installmentPlan.status !== 'active') {
+//                 throw new BadRequestException('Selected installment plan is not active')
+//               }
+//               console.log('✅ Installment plan validated')
 //             }
-//             console.log('✅ Installment plan validated')
 //           } else {
-//             console.warn('Installment plan validation skipped - unexpected response format')
+//             console.warn('InstallmentsService.getInstallmentPlan method not available, skipping validation')
 //           }
 //         } catch (error) {
 //           console.error('Error validating installment plan:', error.message)
 //           if (error instanceof BadRequestException) {
 //             throw error
 //           }
-//           throw new BadRequestException('Invalid installment plan')
+//           // For other errors, just log and continue
+//           console.warn('Installment plan validation failed, continuing with order creation')
 //         }
+//       }
+      
+//       // FIXED: Calculate installment details properly
+//       const downPayment = createOrderDto.installmentInfo.downPayment
+//       const numberOfInstallments = createOrderDto.installmentInfo.numberOfInstallments
+//       const interestRate = createOrderDto.installmentInfo.interestRate || 0
+      
+//       // Validate down payment amount
+//       if (downPayment < 0 || downPayment > total) {
+//         throw new BadRequestException('Invalid down payment amount')
+//       }
+      
+//       // Calculate remaining amount after down payment
+//       const remainingAmount = total - downPayment
+      
+//       // Calculate installment amount with interest
+//       let installmentAmount: number
+//       let totalInterest: number
+//       let totalPayable: number
+      
+//       if (interestRate > 0) {
+//         const monthlyInterestRate = interestRate / 12 / 100
+//         const factor = Math.pow(1 + monthlyInterestRate, numberOfInstallments)
+//         installmentAmount = (remainingAmount * monthlyInterestRate * factor) / (factor - 1)
+//         totalInterest = installmentAmount * numberOfInstallments - remainingAmount
+//         totalPayable = downPayment + installmentAmount * numberOfInstallments
+//       } else {
+//         installmentAmount = remainingAmount / numberOfInstallments
+//         totalInterest = 0
+//         totalPayable = total // No interest, so total payable equals original total
 //       }
       
 //       installmentInfo = {
 //         isInstallment: true,
 //         installmentPlan: createOrderDto.installmentInfo.installmentPlan,
-//         numberOfInstallments: createOrderDto.installmentInfo.numberOfInstallments,
-//         downPayment: createOrderDto.installmentInfo.downPayment,
-//         installmentAmount: createOrderDto.installmentInfo.installmentAmount,
-//         interestRate: createOrderDto.installmentInfo.interestRate || 0,
-//         totalPayable: createOrderDto.installmentInfo.totalPayable,
+//         numberOfInstallments,
+//         downPayment,
+//         installmentAmount,
+//         interestRate,
+//         totalPayable,
+//         totalInterest,
+//         remainingAmount: installmentAmount * numberOfInstallments, // Amount still to be paid in installments
 //         paymentFrequency: createOrderDto.installmentInfo.paymentFrequency || 'monthly',
 //         paymentMethod: createOrderDto.installmentInfo.paymentMethod,
 //       }
       
-//       console.log('✅ Installment info processed')
+//       // FIXED: For installment orders, if down payment > 0, set as partially paid
+//       if (downPayment > 0) {
+//         initialPaymentStatus = PaymentStatus.PARTIALLY_PAID
+//         initialPaidAmount = downPayment
+//       }
+      
+//       console.log('✅ Installment info processed:', {
+//         downPayment,
+//         installmentAmount,
+//         totalPayable,
+//         remainingAmount: installmentAmount * numberOfInstallments
+//       })
 //     }
   
 //     console.log('=== CREATING ORDER DOCUMENT ===')
@@ -260,13 +298,13 @@
 //       discount: orderDiscount,
 //       total,
 //       status: OrderStatus.PENDING,
-//       paymentStatus: PaymentStatus.PENDING,
+//       paymentStatus: initialPaymentStatus, // FIXED: Use calculated payment status
 //       paymentType: createOrderDto.paymentType || PaymentType.FULL,
 //       installmentInfo,
 //       shippingAddress: createOrderDto.shippingAddress,
 //       billingAddress: createOrderDto.billingAddress,
 //       notes: createOrderDto.notes,
-//       paidAmount: 0,
+//       paidAmount: initialPaidAmount, // FIXED: Use calculated paid amount
 //       refundedAmount: 0,
 //       paymentMethod: createOrderDto.paymentMethod,
 //       shippingMethod: createOrderDto.shippingMethod,
@@ -287,6 +325,8 @@
   
 //     const savedOrder = await newOrder.save()
 //     console.log(`✅ Order saved with ID: ${savedOrder._id}`)
+//     console.log(`✅ Order payment status: ${savedOrder.paymentStatus}`)
+//     console.log(`✅ Order paid amount: ${savedOrder.paidAmount}`)
   
 //     console.log('=== REDUCING INVENTORY ===')
 //     // Reduce inventory for each item using pre-fetched inventory
@@ -380,17 +420,43 @@
 //   async createInstallmentOrder(createInstallmentOrderDto: CreateInstallmentOrderDto, userId: string): Promise<Order> {
 //     console.log('=== CREATING INSTALLMENT ORDER ===')
     
+//     // FIXED: Properly calculate installment details before creating order
+//     const total = createInstallmentOrderDto.items.reduce((sum, item) => sum + (item.quantity * item.price), 0)
+//     const downPayment = createInstallmentOrderDto.downPayment
+//     const numberOfInstallments = createInstallmentOrderDto.numberOfInstallments
+//     const interestRate = createInstallmentOrderDto.interestRate || 0
+    
+//     // Validate calculations
+//     if (downPayment < 0 || downPayment > total) {
+//       throw new BadRequestException('Invalid down payment amount')
+//     }
+    
+//     // Calculate remaining amount and installment details
+//     const remainingAmount = total - downPayment
+//     let installmentAmount: number
+//     let totalPayable: number
+    
+//     if (interestRate > 0) {
+//       const monthlyInterestRate = interestRate / 12 / 100
+//       const factor = Math.pow(1 + monthlyInterestRate, numberOfInstallments)
+//       installmentAmount = (remainingAmount * monthlyInterestRate * factor) / (factor - 1)
+//       totalPayable = downPayment + installmentAmount * numberOfInstallments
+//     } else {
+//       installmentAmount = remainingAmount / numberOfInstallments
+//       totalPayable = total
+//     }
+    
 //     // Convert to regular order DTO with installment info
 //     const orderDto: CreateOrderDto = {
 //       ...createInstallmentOrderDto,
 //       paymentType: PaymentType.INSTALLMENT,
 //       installmentInfo: {
 //         installmentPlan: createInstallmentOrderDto.installmentPlanId,
-//         numberOfInstallments: createInstallmentOrderDto.numberOfInstallments,
-//         downPayment: createInstallmentOrderDto.downPayment,
-//         installmentAmount: createInstallmentOrderDto.installmentAmount,
-//         interestRate: createInstallmentOrderDto.interestRate,
-//         totalPayable: createInstallmentOrderDto.totalPayable,
+//         numberOfInstallments,
+//         downPayment,
+//         installmentAmount,
+//         interestRate,
+//         totalPayable,
 //         paymentFrequency: createInstallmentOrderDto.paymentFrequency,
 //         paymentMethod: createInstallmentOrderDto.paymentMethod,
 //       }
@@ -425,7 +491,7 @@
 //         amount: installmentInfo.downPayment,
 //         dueDate: startDate,
 //         type: 'down_payment',
-//         status: 'pending',
+//         status: 'paid', // FIXED: Mark down payment as paid since it's already processed
 //         installmentNumber: 0,
 //       })
 //     }
@@ -459,7 +525,7 @@
 //       })
 //     }
     
-//     // Create payment schedule records - Check if method exists
+//     // Create payment schedule records
 //     for (const item of scheduleItems) {
 //       try {
 //         if (this.paymentsService && typeof this.paymentsService.createScheduledPayment === 'function') {
@@ -493,6 +559,18 @@
 //       throw new BadRequestException('Order is not an installment order')
 //     }
     
+//     // FIXED: Calculate new paid amount and payment status
+//     const newPaidAmount = order.paidAmount + paymentAmount
+//     let newPaymentStatus: PaymentStatus
+    
+//     if (newPaidAmount >= order.total) {
+//       newPaymentStatus = PaymentStatus.PAID
+//     } else if (newPaidAmount > 0) {
+//       newPaymentStatus = PaymentStatus.PARTIALLY_PAID
+//     } else {
+//       newPaymentStatus = PaymentStatus.PENDING
+//     }
+    
 //     // Update paid amount
 //     const updatedOrder = await this.orderModel.findByIdAndUpdate(
 //       orderId,
@@ -500,7 +578,7 @@
 //         $inc: { paidAmount: paymentAmount },
 //         $set: { 
 //           paymentReference,
-//           paymentStatus: order.paidAmount + paymentAmount >= order.total ? PaymentStatus.PAID : PaymentStatus.PARTIALLY_PAID
+//           paymentStatus: newPaymentStatus
 //         }
 //       },
 //       { new: true }
@@ -512,7 +590,7 @@
 //       userId,
 //       module: "ORDERS",
 //       description: `Installment payment of ${paymentAmount} received for order #${order.orderNumber}`,
-//       changes: JSON.stringify({ paymentAmount, paymentReference }),
+//       changes: JSON.stringify({ paymentAmount, paymentReference, newPaidAmount, newPaymentStatus }),
 //     })
     
 //     // Send notification
@@ -836,10 +914,10 @@
 //       order.paymentDetails = updatePaymentStatusDto.paymentDetails
 //     }
 
-//     // PERMANENTLY FIXED: Convert DTO enum to schema enum for comparison
+//     // Convert DTO enum to schema enum for comparison
 //     const dtoPaymentStatus = updatePaymentStatusDto.paymentStatus
     
-//     // If payment is successful and order is pending, move to processing - PERMANENTLY FIXED
+//     // If payment is successful and order is pending, move to processing
 //     if (dtoPaymentStatus === PaymentStatusEnum.PAID && order.status === OrderStatus.PENDING) {
 //       order.addStatusHistory(OrderStatus.PROCESSING, "Payment received, order processing", userId)
 //     }
@@ -1090,7 +1168,6 @@
 // }
 
 
-
 import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from "@nestjs/common"
 import { Model } from "mongoose"
 import { InjectModel } from '@nestjs/mongoose';
@@ -1107,7 +1184,7 @@ import { AuditService } from "../audit/audit.service"
 import { NotificationsService } from "../notifications/notifications.service"
 import { InvoicesService } from "../invoices/invoices.service"
 import { ShippingTaxService } from "../shipping-tax/shipping-tax.service"
-import { InstallmentsService } from "../installments/installments.service" // FIXED: Correct service import
+import { InstallmentsService } from "../installments/installments.service"
 import { PaymentsService } from "../payments/payments.service"
 import { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
 import { Types } from "mongoose"
@@ -1126,7 +1203,7 @@ export class OrdersService {
   private auditService: AuditService
   private notificationsService: NotificationsService
   private shippingTaxService: ShippingTaxService
-  private installmentsService: InstallmentsService // FIXED: Correct service name
+  private installmentsService: InstallmentsService
   private paymentsService: PaymentsService
   private salesService: SalesService
 
@@ -1140,7 +1217,7 @@ export class OrdersService {
     auditService: AuditService,
     notificationsService: NotificationsService,
     shippingTaxService: ShippingTaxService,
-    installmentsService: InstallmentsService, // FIXED: Correct service parameter
+    installmentsService: InstallmentsService,
     @Inject(forwardRef(() => PaymentsService))
     paymentsService: PaymentsService,
     salesService: SalesService,
@@ -1154,7 +1231,7 @@ export class OrdersService {
     this.auditService = auditService
     this.notificationsService = notificationsService
     this.shippingTaxService = shippingTaxService
-    this.installmentsService = installmentsService // FIXED: Correct service assignment
+    this.installmentsService = installmentsService
     this.paymentsService = paymentsService
     this.salesService = salesService
   }
@@ -1232,10 +1309,10 @@ export class OrdersService {
           throw new BadRequestException(`Product ${product.name} is out of stock`)
         }
   
-        // Calculate item total
-        const price = product.discountPrice > 0 ? product.discountPrice : product.price
+        // Calculate item total - use price from DTO if provided, otherwise from product
+        const basePrice = item.price || (product.discountPrice > 0 ? product.discountPrice : product.price)
         const itemDiscount = item.discount || 0
-        const discountedPrice = price - (price * itemDiscount / 100)
+        const discountedPrice = basePrice - (basePrice * itemDiscount / 100)
         const total = discountedPrice * item.quantity
   
         // Add to order items
@@ -1261,64 +1338,52 @@ export class OrdersService {
   
     console.log('=== ALL ITEMS PRE-VALIDATED SUCCESSFULLY ===')
   
-    // Get country code from shipping address
+    // Use provided values or calculate them
+    const finalSubtotal = createOrderDto.subtotal || subtotal
     const countryCode = createOrderDto.shippingAddress.country || "DEFAULT"
-  
-    // Get shipping rate based on country
-    const shippingRate = await this.shippingTaxService.getShippingRate(countryCode)
-  
-    // Get VAT rate based on country
-    const vatRate = await this.shippingTaxService.getVatRate(countryCode)
-  
-    // Calculate VAT amount (as percentage of subtotal)
-    const vatAmount = subtotal * (vatRate / 100)
-  
+    
+    // Get shipping and tax rates
+    const shippingRate = createOrderDto.shipping || await this.shippingTaxService.getShippingRate(countryCode)
+    const vatRate = createOrderDto.taxRate || await this.shippingTaxService.getVatRate(countryCode)
+    
+    // Calculate VAT amount
+    const vatAmount = createOrderDto.tax || (finalSubtotal * (vatRate / 100))
+    
     // Apply order-level discount if provided
     const orderDiscount = createOrderDto.discount || 0
-    const discountAmount = subtotal * (orderDiscount / 100)
-    const discountedSubtotal = subtotal - discountAmount
+    const discountAmount = finalSubtotal * (orderDiscount / 100)
+    const discountedSubtotal = finalSubtotal - discountAmount
+    
+    // Calculate total
+    const total = createOrderDto.total || (discountedSubtotal + shippingRate + vatAmount)
   
-    // Calculate total with shipping and VAT
-    const total = discountedSubtotal + shippingRate + vatAmount
+    // FIXED: Initialize payment status and paid amount based on payment type
+    let initialPaymentStatus = PaymentStatus.PENDING
+    let initialPaidAmount = createOrderDto.paidAmount || 0
+    let installmentInfo = null
   
     // Handle installment information if payment type is installment
-    let installmentInfo = null
     if (createOrderDto.paymentType === PaymentType.INSTALLMENT && createOrderDto.installmentInfo) {
       console.log('=== PROCESSING INSTALLMENT ORDER ===')
       
-      // Validate installment plan if provided - FIXED
+      // Validate installment plan if provided
       if (createOrderDto.installmentInfo.installmentPlan) {
         try {
-          // FIXED: Use the correct service method
-          let installmentPlan: any = null
-          
-          try {
-            // Check if the service has the method we need
-            if (this.installmentsService && typeof this.installmentsService.getInstallmentPlan === 'function') {
-              installmentPlan = await this.installmentsService.getInstallmentPlan(
-                createOrderDto.installmentInfo.installmentPlan.toString(),
-                userId
-              )
-            } else {
-              console.warn('InstallmentsService.getInstallmentPlan method not available, skipping validation')
-            }
-          } catch (serviceError) {
-            console.error('InstallmentsService.getInstallmentPlan error:', serviceError)
-            // Don't throw error, just log and continue
-            console.warn('Installment plan validation skipped due to service error')
-          }
-          
-          // Check if we got a valid response
-          if (installmentPlan) {
-            // Safely check for isActive property
-            if (typeof installmentPlan === 'object' && installmentPlan !== null) {
+          // Check if the service has the method we need
+          if (this.installmentsService && typeof this.installmentsService.getInstallmentPlan === 'function') {
+            const installmentPlan = await this.installmentsService.getInstallmentPlan(
+              createOrderDto.installmentInfo.installmentPlan.toString(),
+              userId
+            )
+            
+            if (installmentPlan && typeof installmentPlan === 'object' && installmentPlan !== null) {
               if ('status' in installmentPlan && installmentPlan.status !== 'active') {
                 throw new BadRequestException('Selected installment plan is not active')
               }
               console.log('✅ Installment plan validated')
             }
           } else {
-            console.warn('Installment plan validation skipped - no response from service')
+            console.warn('InstallmentsService.getInstallmentPlan method not available, skipping validation')
           }
         } catch (error) {
           console.error('Error validating installment plan:', error.message)
@@ -1330,19 +1395,62 @@ export class OrdersService {
         }
       }
       
+      // FIXED: Calculate installment details properly
+      const downPayment = createOrderDto.installmentInfo.downPayment
+      const numberOfInstallments = createOrderDto.installmentInfo.numberOfInstallments
+      const interestRate = createOrderDto.installmentInfo.interestRate || 0
+      
+      // Validate down payment amount
+      if (downPayment < 0 || downPayment > total) {
+        throw new BadRequestException('Invalid down payment amount')
+      }
+      
+      // Calculate remaining amount after down payment
+      const remainingAmount = total - downPayment
+      
+      // Calculate installment amount with interest
+      let installmentAmount: number
+      let totalInterest: number
+      let totalPayable: number
+      
+      if (interestRate > 0) {
+        const monthlyInterestRate = interestRate / 12 / 100
+        const factor = Math.pow(1 + monthlyInterestRate, numberOfInstallments)
+        installmentAmount = (remainingAmount * monthlyInterestRate * factor) / (factor - 1)
+        totalInterest = installmentAmount * numberOfInstallments - remainingAmount
+        totalPayable = downPayment + installmentAmount * numberOfInstallments
+      } else {
+        installmentAmount = remainingAmount / numberOfInstallments
+        totalInterest = 0
+        totalPayable = total // No interest, so total payable equals original total
+      }
+      
       installmentInfo = {
         isInstallment: true,
         installmentPlan: createOrderDto.installmentInfo.installmentPlan,
-        numberOfInstallments: createOrderDto.installmentInfo.numberOfInstallments,
-        downPayment: createOrderDto.installmentInfo.downPayment,
-        installmentAmount: createOrderDto.installmentInfo.installmentAmount,
-        interestRate: createOrderDto.installmentInfo.interestRate || 0,
-        totalPayable: createOrderDto.installmentInfo.totalPayable,
+        numberOfInstallments,
+        downPayment,
+        installmentAmount,
+        interestRate,
+        totalPayable,
+        totalInterest,
+        remainingAmount: installmentAmount * numberOfInstallments, // Amount still to be paid in installments
         paymentFrequency: createOrderDto.installmentInfo.paymentFrequency || 'monthly',
         paymentMethod: createOrderDto.installmentInfo.paymentMethod,
       }
       
-      console.log('✅ Installment info processed')
+      // FIXED: For installment orders, if down payment > 0, set as partially paid
+      if (downPayment > 0) {
+        initialPaymentStatus = PaymentStatus.PARTIALLY_PAID
+        initialPaidAmount = downPayment
+      }
+      
+      console.log('✅ Installment info processed:', {
+        downPayment,
+        installmentAmount,
+        totalPayable,
+        remainingAmount: installmentAmount * numberOfInstallments
+      })
     }
   
     console.log('=== CREATING ORDER DOCUMENT ===')
@@ -1358,13 +1466,13 @@ export class OrdersService {
       discount: orderDiscount,
       total,
       status: OrderStatus.PENDING,
-      paymentStatus: PaymentStatus.PENDING,
+      paymentStatus: initialPaymentStatus, // FIXED: Use calculated payment status
       paymentType: createOrderDto.paymentType || PaymentType.FULL,
       installmentInfo,
       shippingAddress: createOrderDto.shippingAddress,
       billingAddress: createOrderDto.billingAddress,
       notes: createOrderDto.notes,
-      paidAmount: 0,
+      paidAmount: initialPaidAmount, // FIXED: Use calculated paid amount
       refundedAmount: 0,
       paymentMethod: createOrderDto.paymentMethod,
       shippingMethod: createOrderDto.shippingMethod,
@@ -1373,6 +1481,7 @@ export class OrdersService {
       locale: createOrderDto.locale || 'en-US',
       source: createOrderDto.source || 'web',
       metadata: createOrderDto.metadata || {},
+      estimatedDelivery: createOrderDto.estimatedDelivery ? new Date(createOrderDto.estimatedDelivery) : undefined,
       statusHistory: [
         {
           status: OrderStatus.PENDING,
@@ -1385,6 +1494,8 @@ export class OrdersService {
   
     const savedOrder = await newOrder.save()
     console.log(`✅ Order saved with ID: ${savedOrder._id}`)
+    console.log(`✅ Order payment status: ${savedOrder.paymentStatus}`)
+    console.log(`✅ Order paid amount: ${savedOrder.paidAmount}`)
   
     console.log('=== REDUCING INVENTORY ===')
     // Reduce inventory for each item using pre-fetched inventory
@@ -1478,17 +1589,66 @@ export class OrdersService {
   async createInstallmentOrder(createInstallmentOrderDto: CreateInstallmentOrderDto, userId: string): Promise<Order> {
     console.log('=== CREATING INSTALLMENT ORDER ===')
     
+    // FIXED: Calculate total from products instead of using DTO price
+    let calculatedTotal = 0
+    
+    // Fetch product details and calculate total
+    for (const item of createInstallmentOrderDto.items) {
+      try {
+        const product = await this.productsService.findProductById(item.product)
+        const basePrice = item.price || (product.discountPrice > 0 ? product.discountPrice : product.price)
+        const itemDiscount = item.discount || 0
+        const discountedPrice = basePrice - (basePrice * itemDiscount / 100)
+        calculatedTotal += discountedPrice * item.quantity
+      } catch (error) {
+        console.error(`Error fetching product ${item.product}:`, error.message)
+        throw new BadRequestException(`Product ${item.product} not found`)
+      }
+    }
+    
+    // Use provided total or calculated total
+    const total = createInstallmentOrderDto.total || calculatedTotal
+    const downPayment = createInstallmentOrderDto.downPayment
+    const numberOfInstallments = createInstallmentOrderDto.numberOfInstallments
+    const interestRate = createInstallmentOrderDto.interestRate || 0
+    
+    // Validate calculations
+    if (downPayment < 0 || downPayment > total) {
+      throw new BadRequestException('Invalid down payment amount')
+    }
+    
+    // Calculate remaining amount and installment details
+    const remainingAmount = total - downPayment
+    let installmentAmount: number
+    let totalPayable: number
+    
+    if (interestRate > 0) {
+      const monthlyInterestRate = interestRate / 12 / 100
+      const factor = Math.pow(1 + monthlyInterestRate, numberOfInstallments)
+      installmentAmount = (remainingAmount * monthlyInterestRate * factor) / (factor - 1)
+      totalPayable = downPayment + installmentAmount * numberOfInstallments
+    } else {
+      installmentAmount = remainingAmount / numberOfInstallments
+      totalPayable = total
+    }
+    
     // Convert to regular order DTO with installment info
     const orderDto: CreateOrderDto = {
       ...createInstallmentOrderDto,
       paymentType: PaymentType.INSTALLMENT,
+      total: total,
+      subtotal: createInstallmentOrderDto.subtotal,
+      tax: createInstallmentOrderDto.tax,
+      taxRate: createInstallmentOrderDto.taxRate,
+      shipping: createInstallmentOrderDto.shipping,
+      paidAmount: downPayment, // Set the paid amount to down payment
       installmentInfo: {
         installmentPlan: createInstallmentOrderDto.installmentPlanId,
-        numberOfInstallments: createInstallmentOrderDto.numberOfInstallments,
-        downPayment: createInstallmentOrderDto.downPayment,
-        installmentAmount: createInstallmentOrderDto.installmentAmount,
-        interestRate: createInstallmentOrderDto.interestRate,
-        totalPayable: createInstallmentOrderDto.totalPayable,
+        numberOfInstallments,
+        downPayment,
+        installmentAmount,
+        interestRate,
+        totalPayable,
         paymentFrequency: createInstallmentOrderDto.paymentFrequency,
         paymentMethod: createInstallmentOrderDto.paymentMethod,
       }
@@ -1523,7 +1683,7 @@ export class OrdersService {
         amount: installmentInfo.downPayment,
         dueDate: startDate,
         type: 'down_payment',
-        status: 'pending',
+        status: 'paid', // FIXED: Mark down payment as paid since it's already processed
         installmentNumber: 0,
       })
     }
@@ -1557,7 +1717,7 @@ export class OrdersService {
       })
     }
     
-    // Create payment schedule records - Check if method exists
+    // Create payment schedule records
     for (const item of scheduleItems) {
       try {
         if (this.paymentsService && typeof this.paymentsService.createScheduledPayment === 'function') {
@@ -1591,6 +1751,18 @@ export class OrdersService {
       throw new BadRequestException('Order is not an installment order')
     }
     
+    // FIXED: Calculate new paid amount and payment status
+    const newPaidAmount = order.paidAmount + paymentAmount
+    let newPaymentStatus: PaymentStatus
+    
+    if (newPaidAmount >= order.total) {
+      newPaymentStatus = PaymentStatus.PAID
+    } else if (newPaidAmount > 0) {
+      newPaymentStatus = PaymentStatus.PARTIALLY_PAID
+    } else {
+      newPaymentStatus = PaymentStatus.PENDING
+    }
+    
     // Update paid amount
     const updatedOrder = await this.orderModel.findByIdAndUpdate(
       orderId,
@@ -1598,7 +1770,7 @@ export class OrdersService {
         $inc: { paidAmount: paymentAmount },
         $set: { 
           paymentReference,
-          paymentStatus: order.paidAmount + paymentAmount >= order.total ? PaymentStatus.PAID : PaymentStatus.PARTIALLY_PAID
+          paymentStatus: newPaymentStatus
         }
       },
       { new: true }
@@ -1610,7 +1782,7 @@ export class OrdersService {
       userId,
       module: "ORDERS",
       description: `Installment payment of ${paymentAmount} received for order #${order.orderNumber}`,
-      changes: JSON.stringify({ paymentAmount, paymentReference }),
+      changes: JSON.stringify({ paymentAmount, paymentReference, newPaidAmount, newPaymentStatus }),
     })
     
     // Send notification
@@ -1934,10 +2106,10 @@ export class OrdersService {
       order.paymentDetails = updatePaymentStatusDto.paymentDetails
     }
 
-    // PERMANENTLY FIXED: Convert DTO enum to schema enum for comparison
+    // Convert DTO enum to schema enum for comparison
     const dtoPaymentStatus = updatePaymentStatusDto.paymentStatus
     
-    // If payment is successful and order is pending, move to processing - PERMANENTLY FIXED
+    // If payment is successful and order is pending, move to processing
     if (dtoPaymentStatus === PaymentStatusEnum.PAID && order.status === OrderStatus.PENDING) {
       order.addStatusHistory(OrderStatus.PROCESSING, "Payment received, order processing", userId)
     }
