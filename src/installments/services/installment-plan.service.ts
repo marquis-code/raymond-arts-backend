@@ -17,6 +17,9 @@ import * as crypto from "crypto"
 
 @Injectable()
 export class InstallmentPlanService {
+  findById(arg0: string) {
+    throw new Error("Method not implemented.")
+  }
   constructor(
     @InjectModel(InstallmentPlan.name) private installmentPlanModel: Model<InstallmentPlan>,
     @InjectModel(InstallmentPayment.name) private installmentPaymentModel: Model<InstallmentPayment>,

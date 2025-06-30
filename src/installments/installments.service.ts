@@ -17,7 +17,7 @@ import { PaymentStatus } from '../shared/enums/payment-status.enum';
 import { Product } from '../products/schemas/product.schema';
 import { Order } from '../orders/schemas/order.schema';
 import { UsersService } from '../users/users.service';
-import { EmailService } from '../installments/email.service';
+import { EmailService } from '../email/email.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TransactionsService } from '../transactions/transactions.service';
 import { UpdateInstallmentPlanDto } from '../installments/dto/update-installment-plan.dto';
