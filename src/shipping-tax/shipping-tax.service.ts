@@ -244,4 +244,84 @@ export class ShippingTaxService {
       description: `Tax config deleted for ${config.countryName}`,
     });
   }
+
+  async createBulkShippingConfigs(
+    createShippingConfigDtos: CreateShippingConfigDto[], 
+    userId: string
+  ): Promise<ShippingConfig[] | any> {
+    try {
+      // Prepare bulk data with userId
+      const bulkData = createShippingConfigDtos.map(dto => ({
+        ...dto,
+        createdBy: userId,
+      }));
+
+      // Bulk insert
+      const savedConfigs = await this.shippingConfigModel.insertMany(bulkData);
+
+      // Create bulk audit logs
+      const auditLogs = savedConfigs.map(config => ({
+        action: 'CREATE',
+        userId,
+        module: 'SHIPPING_CONFIG',
+        description: `Shipping config created for ${config.countryName}`,
+      }));
+
+      // // Log all audits at once
+      // await this.auditService.createBulkAuditLogs?.(auditLogs) || 
+      //       Promise.all(auditLogs.map(log => this.auditService.createAuditLog(log)));
+
+      // return savedConfigs;
+    } catch (error) {
+      // Log the bulk operation failure
+      await this.auditService.createAuditLog({
+        action: 'CREATE_BULK',
+        userId,
+        module: 'SHIPPING_CONFIG',
+        description: `Bulk shipping config creation failed: ${error.message}`,
+      });
+      
+      throw error;
+    }
+  }
+
+  async createBulkTaxConfigs(
+    createTaxConfigDtos: CreateTaxConfigDto[], 
+    userId: string
+  ): Promise<TaxConfig[] | any> {
+    try {
+      // Prepare bulk data with userId
+      const bulkData = createTaxConfigDtos.map(dto => ({
+        ...dto,
+        createdBy: userId,
+      }));
+
+      // Bulk insert
+      const savedConfigs = await this.taxConfigModel.insertMany(bulkData);
+
+      // Create bulk audit logs
+      const auditLogs = savedConfigs.map(config => ({
+        action: 'CREATE',
+        userId,
+        module: 'TAX_CONFIG',
+        description: `Tax config created for ${config.countryName}`,
+      }));
+
+      // // Log all audits at once
+      // await this.auditService.createBulkAuditLogs?.(auditLogs) || 
+      //       Promise.all(auditLogs.map(log => this.auditService.createAuditLog(log)));
+
+      // return savedConfigs;
+    } catch (error) {
+      // Log the bulk operation failure
+      await this.auditService.createAuditLog({
+        action: 'CREATE_BULK',
+        userId,
+        module: 'TAX_CONFIG',
+        description: `Bulk tax config creation failed: ${error.message}`,
+      });
+      
+      throw error;
+    }
+  }
 }

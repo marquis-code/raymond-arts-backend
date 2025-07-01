@@ -20,7 +20,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:seed": "ts-node ./src/cli.ts create:user",
-    "setup-templates": "node ensure-templates.js && node copy-templates.js"
+    "setup-templates": "node ensure-templates.js && node copy-templates.js",
+    "script:installment": "ts-node -r tsconfig-paths/register src/scripts/setup-installment-config.ts"
   },
   "dependencies": {
     "@nestjs-modules/mailer": "^1.5.1",
