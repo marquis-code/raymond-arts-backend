@@ -111,7 +111,7 @@ import {
 } from "@nestjs/swagger"
 
 // @ApiTags("Reviews")
-@UseGuards(JwtAuthGuard, RolesGuard)
+// @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 @Controller("reviews")
 export class ReviewController {
@@ -146,7 +146,7 @@ export class ReviewController {
 
 
 @Get()
-@Roles(UserRole.ADMIN)
+// @Roles(UserRole.ADMIN)
 @ApiOperation({ summary: "Get all reviews (Admin only)" })
 @ApiResponse({ status: 200, description: "All reviews retrieved successfully" })
 @ApiQuery({ name: "page", required: false, type: Number })
