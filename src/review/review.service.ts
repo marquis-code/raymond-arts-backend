@@ -1,390 +1,3 @@
-// import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common"
-// import { Model, Types } from "mongoose"
-// import { InjectModel } from "@nestjs/mongoose"
-// import { Review, ReviewDocument, ReviewStatus, UserRole } from "./review.schema"
-// import { CreateReviewDto } from "./dto/create-review.dto"
-// import { ApproveReviewDto } from "./dto/approve-review.dto"
-// import { ProductsService } from "../products/products.service"
-
-// @Injectable()
-// export class ReviewService {
-
-//   constructor(
-//     @InjectModel(Review.name) private reviewModel: Model<ReviewDocument>,
-//     private productService: ProductsService
-//   ) {}
-
-
-//   async findAllReviews(
-//     page = 1,
-//     limit = 10,
-//   ): Promise<{
-//     reviews: Review[],
-//     total: number,
-//     page: number,
-//     totalPages: number,
-//   }> {
-//     const skip = (page - 1) * limit;
-  
-//     const [reviews, total] = await Promise.all([
-//       this.reviewModel
-//         .find()
-//         .sort({ createdAt: -1 })
-//         .skip(skip)
-//         .limit(limit)
-//         .populate("course", "name") // optional, if populated
-//         .exec(),
-//       this.reviewModel.countDocuments(),
-//     ]);
-  
-//     return {
-//       reviews,
-//       total,
-//       page,
-//       totalPages: Math.ceil(total / limit),
-//     };
-//   }
-  
-
-//   async create(
-//     createReviewDto: CreateReviewDto,
-//     userId: string,
-//     userName: string,
-//     userRole: UserRole,
-//   ): Promise<Review> {
-//     // Verify product exists
-//     await this.productService.findOne(createReviewDto.productId)
-
-//     // Check if user already reviewed this product
-//     const existingReview = await this.reviewModel.findOne({
-//       course: new Types.ObjectId(createReviewDto.productId), // Changed from productId to course
-//       user: userId, // Changed from userId to user
-//     })
-
-//     if (existingReview) {
-//       throw new BadRequestException("You have already reviewed this product")
-//     }
-
-//     // Set status based on user role
-//     const status = userRole === UserRole.ADMIN ? ReviewStatus.APPROVED : ReviewStatus.PENDING
-
-//     const review = new this.reviewModel({
-//       ...createReviewDto,
-//       course: new Types.ObjectId(createReviewDto.productId), // Changed from productId to course
-//       user: userId, // Changed from userId to user
-//       userName,
-//       userRole,
-//       status,
-//     })
-
-//     const savedReview = await review.save()
-
-//     // If admin review or auto-approved, update product rating immediately
-//     if (status === ReviewStatus.APPROVED) {
-//       await this.updateProductRating(createReviewDto.productId)
-//     }
-
-//     return savedReview
-//   }
-
-//   // async findByProduct(
-//   //   productId: string,
-//   //   page = 1,
-//   //   limit = 10,
-//   //   includeAll = false,
-//   // ): Promise<{
-//   //   reviews: Review[]
-//   //   total: number
-//   //   page: number
-//   //   totalPages: number
-//   // }> {
-//   //   if (!Types.ObjectId.isValid(productId)) {
-//   //     throw new BadRequestException("Invalid product ID")
-//   //   }
-
-//   //   const skip = (page - 1) * limit
-//   //   const filter: any = { course: new Types.ObjectId(productId) } // Changed from productId to course
-
-//   //   if (!includeAll) {
-//   //     filter.status = ReviewStatus.APPROVED
-//   //   }
-
-//   //   const [reviews, total] = await Promise.all([
-//   //     this.reviewModel.find(filter)
-//   //       .sort({ createdAt: -1 })
-//   //       .skip(skip)
-//   //       .limit(limit)
-//   //       .exec(),
-//   //     this.reviewModel.countDocuments(filter),
-//   //   ])
-
-//   //   return {
-//   //     reviews,
-//   //     total,
-//   //     page,
-//   //     totalPages: Math.ceil(total / limit),
-//   //   }
-//   // }
-
-//   // async findByProduct(
-//   //   productId: string,
-//   //   page = 1,
-//   //   limit = 10,
-//   //   includeAll = false,
-//   // ): Promise<{
-//   //   reviews: Review[]
-//   //   total: number
-//   //   page: number
-//   //   totalPages: number
-//   // }> {
-//   //   if (!Types.ObjectId.isValid(productId)) {
-//   //     throw new BadRequestException("Invalid product ID");
-//   //   }
-  
-//   //   const skip = (page - 1) * limit;
-//   //   const filter: any = { course: new Types.ObjectId(productId) };
-  
-//   //   if (!includeAll) {
-//   //     filter.status = ReviewStatus.APPROVED;
-//   //   }
-  
-//   //   const [reviews, total] = await Promise.all([
-//   //     this.reviewModel
-//   //       .find(filter)
-//   //       .sort({ createdAt: -1 })
-//   //       .skip(skip)
-//   //       .limit(limit)
-//   //       .populate("course", "name") // Optional: populate course name
-//   //       .exec(),
-//   //     this.reviewModel.countDocuments(filter),
-//   //   ]);
-  
-//   //   return {
-//   //     reviews,
-//   //     total,
-//   //     page,
-//   //     totalPages: Math.ceil(total / limit),
-//   //   };
-//   // }
-  
-//   async findByProduct(
-//     productId: string,
-//     page = 1,
-//     limit = 10,
-//     includeAll = false,
-//   ): Promise<{
-//     reviews: Review[],
-//     total: number,
-//     page: number,
-//     totalPages: number,
-//   }> {
-//     if (!Types.ObjectId.isValid(productId)) {
-//       throw new BadRequestException("Invalid product ID");
-//     }
-  
-//     const skip = (page - 1) * limit;
-//     const filter: any = { productId: new Types.ObjectId(productId) };
-  
-//     if (!includeAll) {
-//       filter.status = ReviewStatus.APPROVED;
-//     }
-  
-//     const [reviews, total] = await Promise.all([
-//       this.reviewModel
-//         .find(filter)
-//         .sort({ createdAt: -1 })
-//         .skip(skip)
-//         .limit(limit)
-//         .populate("productId", "name") // optional: populate product name
-//         .exec(),
-//       this.reviewModel.countDocuments(filter),
-//     ]);
-  
-//     return {
-//       reviews,
-//       total,
-//       page,
-//       totalPages: Math.ceil(total / limit),
-//     };
-//   }
-  
-
-//   async findPendingReviews(
-//     page = 1,
-//     limit = 10,
-//   ): Promise<{
-//     reviews: Review[]
-//     total: number
-//     page: number
-//     totalPages: number
-//   }> {
-//     const skip = (page - 1) * limit
-
-//     const [reviews, total] = await Promise.all([
-//       this.reviewModel
-//         .find({ status: ReviewStatus.PENDING })
-//         .sort({ createdAt: -1 })
-//         .skip(skip)
-//         .limit(limit)
-//         .populate("course", "name") // Changed from productId to course
-//         .exec(),
-//       this.reviewModel.countDocuments({ status: ReviewStatus.PENDING }),
-//     ])
-
-//     return {
-//       reviews,
-//       total,
-//       page,
-//       totalPages: Math.ceil(total / limit),
-//     }
-//   }
-
-//   async approveReview(reviewId: string, approveReviewDto: ApproveReviewDto, adminId: string): Promise<Review> {
-//     if (!Types.ObjectId.isValid(reviewId)) {
-//       throw new BadRequestException("Invalid review ID")
-//     }
-
-//     const review = await this.reviewModel.findById(reviewId)
-//     if (!review) {
-//       throw new NotFoundException("Review not found")
-//     }
-
-//     if (review.status !== ReviewStatus.PENDING) {
-//       throw new BadRequestException("Review is not pending approval")
-//     }
-
-//     const updateData: any = {
-//       status: approveReviewDto.status,
-//       approvedBy: adminId,
-//       approvedAt: new Date(),
-//     }
-
-//     if (approveReviewDto.status === ReviewStatus.REJECTED && approveReviewDto.rejectionReason) {
-//       updateData.rejectionReason = approveReviewDto.rejectionReason
-//     }
-
-//     const updatedReview = await this.reviewModel.findByIdAndUpdate(reviewId, updateData, { new: true })
-
-//     // Update product rating if approved
-//     if (approveReviewDto.status === ReviewStatus.APPROVED) {
-//       await this.updateProductRating(review.productId.toString())
-//     }
-
-//     return updatedReview
-//   }
-
-//   async findUserReviews(
-//     userId: string,
-//     page = 1,
-//     limit = 10,
-//   ): Promise<{
-//     reviews: Review[]
-//     total: number
-//     page: number
-//     totalPages: number
-//   }> {
-//     const skip = (page - 1) * limit
-
-//     const [reviews, total] = await Promise.all([
-//       this.reviewModel
-//         .find({ userId })
-//         .sort({ createdAt: -1 })
-//         .skip(skip)
-//         .limit(limit)
-//         .populate("productId", "name")
-//         .exec(),
-//       this.reviewModel.countDocuments({ userId }),
-//     ])
-
-//     return {
-//       reviews,
-//       total,
-//       page,
-//       totalPages: Math.ceil(total / limit),
-//     }
-//   }
-
-//   async deleteReview(reviewId: string, userId: string, userRole: UserRole): Promise<void> {
-//     if (!Types.ObjectId.isValid(reviewId)) {
-//       throw new BadRequestException("Invalid review ID");
-//     }
-  
-//     const review = await this.reviewModel.findById(reviewId);
-//     if (!review) {
-//       throw new NotFoundException("Review not found");
-//     }
-  
-//     // Users can only delete their own reviews, admins can delete any
-//     if (userRole !== UserRole.ADMIN && review.userId !== userId) { // Changed from review.user to review.userId
-//       throw new ForbiddenException("You can only delete your own reviews");
-//     }
-  
-//     const wasApproved = review.status === ReviewStatus.APPROVED;
-//     const productId = review.productId.toString(); // Changed from review.course to review.productId
-  
-//     await this.reviewModel.findByIdAndDelete(reviewId);
-  
-//     // Update product rating if the deleted review was approved
-//     if (wasApproved) {
-//       await this.updateProductRating(productId);
-//     }
-//   }
-
-//   async getReviewStats(productId: string): Promise<{
-//     totalReviews: number
-//     averageRating: number
-//     ratingDistribution: { [key: number]: number }
-//   }> {
-//     if (!Types.ObjectId.isValid(productId)) {
-//       throw new BadRequestException("Invalid product ID")
-//     }
-
-//     const reviews = await this.reviewModel.find({
-//       course: new Types.ObjectId(productId), // Changed from productId to course
-//       status: ReviewStatus.APPROVED,
-//     })
-
-//     const totalReviews = reviews.length
-//     const averageRating = totalReviews > 0 
-//       ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews 
-//       : 0
-
-//     const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-//     reviews.forEach(review => {
-//       ratingDistribution[review.rating]++
-//     })
-
-//     return {
-//       totalReviews,
-//       averageRating: Math.round(averageRating * 10) / 10,
-//       ratingDistribution,
-//     }
-//   }
-
-
-//   private async updateProductRating(productId: string): Promise<void> {
-//     try {
-//       const reviews = await this.reviewModel.find({
-//         course: new Types.ObjectId(productId), // Changed from productId to course
-//         status: ReviewStatus.APPROVED,
-//       })
-
-//       if (reviews.length === 0) {
-//         await this.productService.updateRating(productId, 0, 0)
-//         return
-//       }
-
-//       const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0)
-//       const averageRating = totalRating / reviews.length
-
-//       await this.productService.updateRating(productId, averageRating, reviews.length)
-//     } catch (error) {
-//       console.error(`Failed to update product rating for product ${productId}:`, error)
-//       // Don't throw the error to avoid breaking the review creation/approval process
-//     }
-//   }
-// }
-
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from "@nestjs/common"
 import { Model, Types } from "mongoose"
 import { InjectModel } from "@nestjs/mongoose"
@@ -399,49 +12,6 @@ export class ReviewService {
     @InjectModel(ProductReview.name) private reviewModel: Model<ProductReviewDocument>,
     private productService: ProductsService
   ) {}
-
-  // async create(
-  //   createReviewDto: CreateReviewDto,
-  //   userId: string,
-  //   userName: string,
-  //   userRole: UserRole,
-  // ): Promise<Review> {
-  //   // Verify product exists
-  //   await this.productService.findOne(createReviewDto.productId)
-
-  //   // Check if user already reviewed this product
-  //   const existingReview = await this.reviewModel.findOne({
-  //     productId: new Types.ObjectId(createReviewDto.productId),
-  //     userId: userId,
-  //   })
-
-  //   if (existingReview) {
-  //     throw new BadRequestException("You have already reviewed this product")
-  //   }
-
-  //   // Set status based on user role
-  //   const status = userRole === UserRole.ADMIN ? ReviewStatus.APPROVED : ReviewStatus.PENDING
-
-  //   const review = new this.reviewModel({
-  //     productId: new Types.ObjectId(createReviewDto.productId),
-  //     userId,
-  //     userName,
-  //     userRole,
-  //     rating: createReviewDto.rating,
-  //     comment: createReviewDto.comment,
-  //     title: createReviewDto.title,
-  //     status,
-  //   })
-
-  //   const savedReview = await review.save()
-
-  //   // If admin review or auto-approved, update product rating immediately
-  //   if (status === ReviewStatus.APPROVED) {
-  //     await this.updateProductRating(createReviewDto.productId)
-  //   }
-
-  //   return savedReview
-  // }
 
   async createReview(
     createReviewDto: CreateProductReviewDto,
@@ -492,6 +62,41 @@ export class ReviewService {
       }
       throw error
     }
+  }
+
+  async updateReviewStatus(
+    reviewId: string,
+    status: ProductReviewStatus,
+    userId: string
+  ): Promise<ProductReview> {
+    const review = await this.reviewModel.findById(reviewId)
+    if (!review) {
+      throw new NotFoundException('Review not found')
+    }
+
+    // Only allow admins or staff to update the status
+    if (review.userId === userId && status === ProductReviewStatus.REJECTED) {
+      throw new ForbiddenException('You cannot update the status of your own review to REJECTED')
+    }
+
+    // Prevent changing approved reviews status to other values
+    if (review.status === ProductReviewStatus.APPROVED && status !== ProductReviewStatus.APPROVED) {
+      throw new BadRequestException('Approved reviews cannot be updated to other statuses')
+    }
+
+    review.status = status
+
+    // If status is approved, update the approved fields
+    if (status === ProductReviewStatus.APPROVED) {
+      review.approvedAt = new Date()
+      review.approvedBy = userId
+    }
+
+    if (status === ProductReviewStatus.REJECTED) {
+      review.rejectionReason = 'Rejected by admin or staff'
+    }
+
+    return await review.save()
   }
 
   async findAllReviews(
@@ -631,48 +236,6 @@ export class ReviewService {
     }
   }
 
-  // async approveReview(
-  //   reviewId: string, 
-  //   approveReviewDto: ApproveReviewDto, 
-  //   adminId: string
-  // ): Promise<Review> {
-  //   if (!Types.ObjectId.isValid(reviewId)) {
-  //     throw new BadRequestException("Invalid review ID")
-  //   }
-
-  //   const review = await this.reviewModel.findById(reviewId)
-  //   if (!review) {
-  //     throw new NotFoundException("Review not found")
-  //   }
-
-  //   if (review.status !== ReviewStatus.PENDING) {
-  //     throw new BadRequestException("Review is not pending approval")
-  //   }
-
-  //   const updateData: any = {
-  //     status: approveReviewDto.status,
-  //     approvedBy: adminId,
-  //     approvedAt: new Date(),
-  //   }
-
-  //   if (approveReviewDto.status === ReviewStatus.REJECTED && approveReviewDto.rejectionReason) {
-  //     updateData.rejectionReason = approveReviewDto.rejectionReason
-  //   }
-
-  //   const updatedReview = await this.reviewModel.findByIdAndUpdate(
-  //     reviewId, 
-  //     updateData, 
-  //     { new: true }
-  //   ).populate("productId", "name")
-
-  //   // Update product rating if approved
-  //   if (approveReviewDto.status === ReviewStatus.APPROVED) {
-  //     await this.updateProductRating(review.productId.toString())
-  //   }
-
-  //   return updatedReview
-  // }
-
   async approveReview(reviewId: string, approvedBy: string): Promise<ProductReview> {
     const review = await this.reviewModel.findById(reviewId)
     if (!review) {
@@ -781,84 +344,7 @@ export class ReviewService {
       .exec()
   }
 
-  // async deleteReview(reviewId: string, userId: string, userRole: UserRole): Promise<void> {
-  //   if (!Types.ObjectId.isValid(reviewId)) {
-  //     throw new BadRequestException("Invalid review ID")
-  //   }
 
-  //   const review = await this.reviewModel.findById(reviewId)
-  //   if (!review) {
-  //     throw new NotFoundException("Review not found")
-  //   }
-
-  //   // Users can only delete their own reviews, admins can delete any
-  //   if (userRole !== UserRole.ADMIN && review.userId !== userId) {
-  //     throw new ForbiddenException("You can only delete your own reviews")
-  //   }
-
-  //   const wasApproved = review.status === ReviewStatus.APPROVED
-  //   const productId = review.productId.toString()
-
-  //   await this.reviewModel.findByIdAndDelete(reviewId)
-
-  //   // Update product rating if the deleted review was approved
-  //   if (wasApproved) {
-  //     await this.updateProductRating(productId)
-  //   }
-  // }
-
-  // async getReviewStats(productId: string): Promise<{
-  //   totalReviews: number
-  //   averageRating: number
-  //   ratingDistribution: { [key: number]: number }
-  // }> {
-  //   if (!Types.ObjectId.isValid(productId)) {
-  //     throw new BadRequestException("Invalid product ID")
-  //   }
-
-  //   const reviews = await this.reviewModel.find({
-  //     productId: new Types.ObjectId(productId),
-  //     status: ReviewStatus.APPROVED,
-  //   })
-
-  //   const totalReviews = reviews.length
-  //   const averageRating = totalReviews > 0 
-  //     ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews 
-  //     : 0
-
-  //   const ratingDistribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 }
-  //   reviews.forEach(review => {
-  //     ratingDistribution[review.rating]++
-  //   })
-
-  //   return {
-  //     totalReviews,
-  //     averageRating: Math.round(averageRating * 10) / 10,
-  //     ratingDistribution,
-  //   }
-  // }
-
-  // private async updateProductRating(productId: string): Promise<void> {
-  //   try {
-  //     const reviews = await this.reviewModel.find({
-  //       productId: new Types.ObjectId(productId),
-  //       status: ReviewStatus.APPROVED,
-  //     })
-
-  //     if (reviews.length === 0) {
-  //       await this.productService.updateRating(productId, 0, 0)
-  //       return
-  //     }
-
-  //     const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0)
-  //     const averageRating = totalRating / reviews.length
-
-  //     await this.productService.updateRating(productId, averageRating, reviews.length)
-  //   } catch (error) {
-  //     console.error(`Failed to update product rating for product ${productId}:`, error)
-  //     // Don't throw the error to avoid breaking the review creation/approval process
-  //   }
-  // }
 
   // Helper method to get review by ID
   async findOne(reviewId: string): Promise<ProductReview> {
