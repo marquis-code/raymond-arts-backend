@@ -30,6 +30,7 @@ import { ChatModule } from './chat/chat.module';
 import { ChatNotificationsModule } from './chat-notifications/chat-notifications.module';
 import { CommissionModule } from "./commission/commission.module"
 import { PromoSaleModule } from './promosale/promosale.module';
+import { ReviewModule } from './review/review.module';
 
 @Module({
   imports: [
@@ -109,7 +110,8 @@ import { PromoSaleModule } from './promosale/promosale.module';
     ChatModule,
     ChatNotificationsModule,
     CommissionModule,
-    PromoSaleModule
+    PromoSaleModule,
+    ReviewModule
   ],
 })
 export class AppModule {}

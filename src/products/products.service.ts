@@ -1,22 +1,21 @@
 import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from "@nestjs/common"
+import { Model, Types } from "mongoose"
 import { InjectModel } from "@nestjs/mongoose"
-import type { Model } from "mongoose"
 import { Product } from "./schemas/product.schema"
 import { Category } from "./schemas/category.schema"
-import type { CreateProductDto } from "./dto/create-product.dto"
-import type { UpdateProductDto } from "./dto/update-product.dto"
-import type { CreateCategoryDto } from "./dto/create-category.dto"
-import type { UpdateCategoryDto } from "./dto/update-category.dto"
-import type { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
+import { CreateProductDto } from "./dto/create-product.dto"
+import { UpdateProductDto } from "./dto/update-product.dto"
+import { CreateCategoryDto } from "./dto/create-category.dto"
+import { UpdateCategoryDto } from "./dto/update-category.dto"
+import { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
 import { CloudinaryService } from "../cloudinary/cloudinary.service"
 import { AuditService } from "../audit/audit.service"
 import { InventoryService } from "../inventory/inventory.service"
 import mongoose from "mongoose"
-import type { Express } from "express"
 
 @Injectable()
 export class ProductsService {
-  constructor(
+    constructor(
     @InjectModel(Product.name) private productModel: Model<Product>,
     @InjectModel(Category.name) private categoryModel: Model<Category>,
     private cloudinaryService: CloudinaryService,
@@ -24,9 +23,169 @@ export class ProductsService {
     private inventoryService: InventoryService,
   ) {}
 
-  async createProduct(createProductDto: CreateProductDto, userId: string): Promise<Product> {
-    console.log('Received createProductDto:', createProductDto);
+  // Add the missing methods for review functionality
+  // async findOne(id: string): Promise<Product> {
+  //   if (!mongoose.Types.ObjectId.isValid(id)) {
+  //     throw new BadRequestException(`Invalid product ID: ${id}`)
+  //   }
+
+  //   const product = await this.productModel.findById(id).populate("category").exec()
+
+  //   if (!product) {
+  //     throw new NotFoundException(`Product with ID ${id} not found`)
+  //   }
+
+  //   return product
+  // }
+
+  async findOne(id: string): Promise<Product> {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException(`Invalid product ID: ${id}`)
+    }
+  
+    const product = await this.productModel.findById(id).populate("category").exec()
+  
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`)
+    }
+  
+    return product
+  }
+
+  // async updateRating(productId: string, averageRating: number, reviewCount: number): Promise<void> {
+  //   if (!mongoose.Types.ObjectId.isValid(productId)) {
+  //     throw new BadRequestException(`Invalid product ID: ${productId}`)
+  //   }
+
+  //   const product = await this.productModel.findById(productId)
+  //   if (!product) {
+  //     throw new NotFoundException(`Product with ID ${productId} not found`)
+  //   }
+
+  //   await this.productModel.findByIdAndUpdate(
+  //     productId,
+  //     {
+  //       averageRating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+  //       reviewCount,
+  //       updatedAt: new Date(),
+  //     },
+  //     { new: true },
+  //   )
+  // }
+
+  // async updateRating(productId: string, averageRating: number, reviewCount: number): Promise<void> {
+  //   if (!mongoose.Types.ObjectId.isValid(productId)) {
+  //     throw new BadRequestException(`Invalid product ID: ${productId}`)
+  //   }
+  
+  //   const product = await this.productModel.findById(productId)
+  //   if (!product) {
+  //     throw new NotFoundException(`Product with ID ${productId} not found`)
+  //   }
+  
+  //   await this.productModel.findByIdAndUpdate(
+  //     productId,
+  //     {
+  //       rating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+  //       reviewCount,
+  //       updatedAt: new Date(),
+  //     },
+  //     { new: true },
+  //   )
+  // }
+
+  async updateRating(productId: string, averageRating: number, reviewCount: number): Promise<void> {
+    try {
+      if (!Types.ObjectId.isValid(productId)) {
+        throw new BadRequestException("Invalid product ID")
+      }
+  
+      const updateData = {
+        rating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+        reviewCount: reviewCount,
+        approvedReviewsCount: reviewCount, // Track approved reviews specifically
+      }
+  
+      await this.productModel.findByIdAndUpdate(productId, updateData)
+    } catch (error) {
+      console.error(`Failed to update product rating for ${productId}:`, error)
+      throw new BadRequestException("Failed to update product rating")
+    }
+  }
+
+  async findOneWithReviewStats(id: string): Promise<any> {
+    if (!Types.ObjectId.isValid(id)) {
+      throw new BadRequestException("Invalid product ID")
+    }
+  
+    const product = await this.productModel
+      .findById(id)
+      .populate('category', 'name')
+      .populate('relatedProducts', 'name price images')
+      .exec()
+  
+    if (!product) {
+      throw new NotFoundException("Product not found")
+    }
+  
+    return product
+  }
+
+  // async incrementApprovedReviews(productId: string): Promise<void> {
+  //   if (!mongoose.Types.ObjectId.isValid(productId)) {
+  //     throw new BadRequestException(`Invalid product ID: ${productId}`)
+  //   }
+
+  //   await this.productModel.findByIdAndUpdate(productId, {
+  //     $inc: { approvedReviewsCount: 1 },
+  //     updatedAt: new Date(),
+  //   })
+  // }
+
+  // async decrementApprovedReviews(productId: string): Promise<void> {
+  //   if (!mongoose.Types.ObjectId.isValid(productId)) {
+  //     throw new BadRequestException(`Invalid product ID: ${productId}`)
+  //   }
+
+  //   await this.productModel.findByIdAndUpdate(productId, {
+  //     $inc: { approvedReviewsCount: -1 },
+  //     updatedAt: new Date(),
+  //   })
+  // }
+
+  async incrementApprovedReviews(productId: string): Promise<void> {
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      throw new BadRequestException(`Invalid product ID: ${productId}`)
+    }
+  
+    await this.productModel.findByIdAndUpdate(productId, {
+      $inc: { approvedReviewsCount: 1 },
+      updatedAt: new Date(),
+    })
+  }
+  
+  async decrementApprovedReviews(productId: string): Promise<void> {
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      throw new BadRequestException(`Invalid product ID: ${productId}`)
+    }
+  
+    await this.productModel.findByIdAndUpdate(productId, {
+      $inc: { approvedReviewsCount: -1 },
+      updatedAt: new Date(),
+    })
     
+    // Ensure it doesn't go below 0
+    const product = await this.productModel.findById(productId)
+    if (product && product.approvedReviewsCount < 0) {
+      await this.productModel.findByIdAndUpdate(productId, {
+        approvedReviewsCount: 0,
+      })
+    }
+  }
+
+  async createProduct(createProductDto: CreateProductDto, userId: string): Promise<Product> {
+    console.log("Received createProductDto:", createProductDto)
+
     // Extract data from the function object into a plain object
     const productData = {
       name: createProductDto.name,
@@ -52,30 +211,34 @@ export class ProductsService {
       shippingInfo: createProductDto.shippingInfo,
       sizes: createProductDto.sizes,
       promotionText: createProductDto.promotionText,
-      reviews: createProductDto.reviews || [] // Initialize with empty array if not provided
-    };
-    
-    console.log('Extracted product data:', productData);
-    
+      reviews: createProductDto.reviews || [], // Initialize with empty array if not provided
+      // Initialize review-related fields
+      averageRating: 0,
+      reviewCount: 0,
+      approvedReviewsCount: 0,
+    }
+
+    console.log("Extracted product data:", productData)
+
     // Validate category if provided
     if (productData.category) {
-      const categoryExists = await this.categoryModel.findById(productData.category).exec();
+      const categoryExists = await this.categoryModel.findById(productData.category).exec()
       if (!categoryExists) {
-        throw new BadRequestException("Category not found");
+        throw new BadRequestException("Category not found")
       }
     }
-  
+
     try {
       // Create product using the create method
-      const savedProduct = await this.productModel.create(productData);
-  
+      const savedProduct = await this.productModel.create(productData)
+
       // Create inventory entry for the product
       await this.inventoryService.createInventoryItem({
         product: savedProduct._id.toString(),
         quantity: 0,
         lowStockThreshold: 5,
-      });
-  
+      })
+
       // Log audit
       await this.auditService.createAuditLog({
         action: "CREATE",
@@ -83,44 +246,44 @@ export class ProductsService {
         module: "PRODUCTS",
         description: `Product created: ${savedProduct.name}`,
         changes: JSON.stringify(productData),
-      });
-  
-      return savedProduct;
+      })
+
+      return savedProduct
     } catch (error) {
-      console.error('Error creating product:', error);
-      if (error.name === 'ValidationError') {
-        throw new BadRequestException(`Validation error: ${error.message}`);
+      console.error("Error creating product:", error)
+      if (error.name === "ValidationError") {
+        throw new BadRequestException(`Validation error: ${error.message}`)
       }
-      throw error;
+      throw error
     }
   }
-  
+
   async updateProduct(id: string, updateProductDto: UpdateProductDto, userId: string): Promise<Product> {
     // Validate category if provided
     if (updateProductDto.category) {
-      const categoryExists = await this.categoryModel.findById(updateProductDto.category);
+      const categoryExists = await this.categoryModel.findById(updateProductDto.category)
       if (!categoryExists) {
-        throw new BadRequestException("Category not found");
+        throw new BadRequestException("Category not found")
       }
     }
-  
+
     // First check if product exists
-    const product = await this.productModel.findById(id);
+    const product = await this.productModel.findById(id)
     if (!product) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
+      throw new NotFoundException(`Product with ID ${id} not found`)
     }
-  
+
     // Update the product using simple document manipulation
     // This avoids using methods that might still rely on callbacks internally
-    Object.keys(updateProductDto).forEach(key => {
+    Object.keys(updateProductDto).forEach((key) => {
       if (updateProductDto[key] !== undefined) {
-        product[key] = updateProductDto[key];
+        product[key] = updateProductDto[key]
       }
-    });
-    
+    })
+
     // Save the updated document
-    const updatedProduct = await product.save();
-  
+    const updatedProduct = await product.save()
+
     // Log audit
     await this.auditService.createAuditLog({
       action: "UPDATE",
@@ -128,9 +291,9 @@ export class ProductsService {
       module: "PRODUCTS",
       description: `Product updated: ${product.name}`,
       changes: JSON.stringify(updateProductDto),
-    });
-  
-    return updatedProduct;
+    })
+
+    return updatedProduct
   }
 
   async findAllProducts(params: PaginationParams): Promise<PaginatedResult<Product>> {
@@ -172,23 +335,22 @@ export class ProductsService {
     }
   }
 
-
   async findProductById(id: string): Promise<Product> {
     // Check if the id is a valid MongoDB ObjectId
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new BadRequestException(`Invalid product ID: ${id}`);
+      throw new BadRequestException(`Invalid product ID: ${id}`)
     }
-  
+
     const product = await this.productModel
       .findById(id)
-      .populate('category') // Populate the category field
-      .exec();
-  
+      .populate("category") // Populate the category field
+      .exec()
+
     if (!product) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
+      throw new NotFoundException(`Product with ID ${id} not found`)
     }
-  
-    return product;
+
+    return product
   }
 
   async removeProduct(id: string, userId: string): Promise<Product> {
@@ -363,19 +525,18 @@ export class ProductsService {
     }
   }
 
-
   async createCategory(createCategoryDto: CreateCategoryDto, userId: string): Promise<Category> {
-    console.log('Service received DTO:', createCategoryDto);
-    
+    console.log("Service received DTO:", createCategoryDto)
+
     try {
       // Validate parent category if provided
       if (createCategoryDto.parent) {
-        const parentExists = await this.categoryModel.findById(createCategoryDto.parent).exec();
+        const parentExists = await this.categoryModel.findById(createCategoryDto.parent).exec()
         if (!parentExists) {
-          throw new BadRequestException("Parent category not found");
+          throw new BadRequestException("Parent category not found")
         }
       }
-  
+
       // Create a clean object with only the properties we need
       const categoryData = {
         name: createCategoryDto.name,
@@ -383,14 +544,14 @@ export class ProductsService {
         image: createCategoryDto.image,
         parent: createCategoryDto.parent,
         isActive: createCategoryDto.isActive !== undefined ? createCategoryDto.isActive : true,
-        order: createCategoryDto.order !== undefined ? createCategoryDto.order : 0
-      };
-      
-      console.log('Creating category with data:', categoryData);
-      
+        order: createCategoryDto.order !== undefined ? createCategoryDto.order : 0,
+      }
+
+      console.log("Creating category with data:", categoryData)
+
       // Use create method instead of new + save for better error handling
-      const savedCategory = await this.categoryModel.create(categoryData);
-  
+      const savedCategory = await this.categoryModel.create(categoryData)
+
       // Log audit
       await this.auditService.createAuditLog({
         action: "CREATE",
@@ -398,30 +559,30 @@ export class ProductsService {
         module: "CATEGORIES",
         description: `Category created: ${savedCategory.name}`,
         changes: JSON.stringify(categoryData),
-      });
-  
-      return savedCategory;
+      })
+
+      return savedCategory
     } catch (error) {
-      console.error('Error creating category:', error);
-      if (error.name === 'ValidationError') {
-        throw new BadRequestException(`Validation error: ${error.message}`);
+      console.error("Error creating category:", error)
+      if (error.name === "ValidationError") {
+        throw new BadRequestException(`Validation error: ${error.message}`)
       }
-      throw error;
+      throw error
     }
   }
 
   async findAllCategories(params: PaginationParams): Promise<PaginatedResult<Category>> {
-    const { page = 1, limit = 10, sort = "order", order = "asc", search } = params;
-    const skip = (page - 1) * limit;
-  
+    const { page = 1, limit = 10, sort = "order", order = "asc", search } = params
+    const skip = (page - 1) * limit
+
     // Build query
-    let query = {};
+    let query = {}
     if (search) {
       query = {
         name: { $regex: search, $options: "i" },
-      };
+      }
     }
-  
+
     try {
       // Execute query
       const [categories, total] = await Promise.all([
@@ -433,8 +594,8 @@ export class ProductsService {
           .populate("parent", "name")
           .exec(),
         this.categoryModel.countDocuments(query).exec(),
-      ]);
-  
+      ])
+
       return {
         data: categories,
         meta: {
@@ -443,10 +604,10 @@ export class ProductsService {
           limit,
           totalPages: Math.ceil(total / limit),
         },
-      };
+      }
     } catch (error) {
-      console.error('Error fetching categories:', error);
-      throw new InternalServerErrorException('Failed to fetch categories');
+      console.error("Error fetching categories:", error)
+      throw new InternalServerErrorException("Failed to fetch categories")
     }
   }
 
@@ -611,4 +772,3 @@ export class ProductsService {
     return result
   }
 }
-
