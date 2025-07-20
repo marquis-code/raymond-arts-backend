@@ -112,7 +112,7 @@ import {
 
 // @ApiTags("Reviews")
 // @UseGuards(JwtAuthGuard, RolesGuard)
-@ApiBearerAuth()
+// @ApiBearerAuth()
 @Controller("reviews")
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
