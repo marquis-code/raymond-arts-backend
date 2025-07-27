@@ -31,6 +31,7 @@ import { ChatNotificationsModule } from './chat-notifications/chat-notifications
 import { CommissionModule } from "./commission/commission.module"
 import { PromoSaleModule } from './promosale/promosale.module';
 import { ReviewModule } from './review/review.module';
+import { ContentModule } from './content/content.module';
 
 @Module({
   imports: [
@@ -111,7 +112,8 @@ import { ReviewModule } from './review/review.module';
     ChatNotificationsModule,
     CommissionModule,
     PromoSaleModule,
-    ReviewModule
+    ReviewModule,
+    ContentModule
   ],
 })
 export class AppModule {}
