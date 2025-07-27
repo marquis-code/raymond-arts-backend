@@ -1,81 +1,63 @@
-
 import {
   Controller,
   Get,
   Post,
   Patch,
-  Param,
   Delete,
   Query,
   UseGuards,
   Request,
   ParseIntPipe,
   DefaultValuePipe,
-  Body
+  Body,
 } from "@nestjs/common"
 import { ReviewService } from "./review.service"
 import { CreateProductReviewDto } from "./dto/create-product-review.dto"
-import { ApproveReviewDto } from "./dto/approve-review.dto"
 import { RolesGuard } from "../auth/guards/roles.guard"
 import { Roles } from "../auth/decorators/roles.decorator"
-import { UserRole, ProductReview, ProductReviewStatus } from "./review.schema"
+import { UserRole } from "../users/enums/user-role.enum"
+import { ProductReview, type ProductReviewStatus } from "./review.schema"
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard"
-import {
-  ApiBearerAuth,
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
-  ApiQuery,
-} from "@nestjs/swagger"
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiParam, ApiQuery } from "@nestjs/swagger"
 
 @Controller("reviews")
 export class ReviewController {
   constructor(private readonly reviewService: ReviewService) {}
 
-  @Patch(':id/status')
+  @Patch(":id/status")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Update review status (admin/staff only)' })
-  @ApiResponse({ status: 200, description: 'Review status updated successfully' })
-  @ApiResponse({ status: 404, description: 'Review not found' })
-  @ApiParam({ name: "id", description: "Review ID" })
-  async updateReviewStatus(
-    @Param('id') id: string,
-    @Body('status') status: ProductReviewStatus,
-    @Request() req,
-  ): Promise<{ message: string }> {
+  @ApiOperation({ summary: "Update review status (admin/staff only)" })
+  @ApiResponse({ status: 200, description: "Review status updated successfully" })
+  @ApiResponse({ status: 404, description: "Review not found" })
+  async updateReviewStatus(id: string, status: ProductReviewStatus, req): Promise<{ message: string }> {
     const userId = req.user.sub || req.user.id
     await this.reviewService.updateReviewStatus(id, status, userId)
-    return { message: 'Review status updated successfully' }
+    return { message: "Review status updated successfully" }
   }
 
   @Post()
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Create a new review' })
+  @ApiOperation({ summary: 'Create a new review (no authentication required)' })
   @ApiResponse({ status: 201, description: 'Review created successfully', type: ProductReview })
-  async create(@Body() createReviewDto: CreateProductReviewDto, @Request() req): Promise<ProductReview> {
-    const userId = req.user.sub || req.user.id
-    const userName = req.user.name || req.user.email || 'Anonymous'
-    const userRole = req.user.role || UserRole.CUSTOMER
-
-    return this.reviewService.createReview(createReviewDto, userId, userName, userRole)
+  async create(@Body() createReviewDto: CreateProductReviewDto): Promise<ProductReview> {
+    return this.reviewService.createReview(createReviewDto)
   }
 
-
-@Get()
-@ApiOperation({ summary: "Get all reviews (Admin only)" })
-@ApiResponse({ status: 200, description: "All reviews retrieved successfully" })
-@ApiQuery({ name: "page", required: false, type: Number })
-@ApiQuery({ name: "limit", required: false, type: Number })
-getAllReviews(
-  @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
-  @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-) {
-  return this.reviewService.findAllReviews(page, limit)
-}
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get all reviews (Admin/Staff only)" })
+  @ApiResponse({ status: 200, description: "All reviews retrieved successfully" })
+  @ApiQuery({ name: "page", required: false, type: Number })
+  @ApiQuery({ name: "limit", required: false, type: Number })
+  getAllReviews(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
+  ) {
+    return this.reviewService.findAllReviews(page, limit)
+  }
 
   @Get("product/:productId")
   @ApiOperation({ summary: "Get reviews for a product" })
@@ -85,14 +67,15 @@ getAllReviews(
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiQuery({ name: "includeAll", required: false, type: String })
   findByProduct(
-    @Param('productId') productId: string,         
+    productId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-    @Query('includeAll') includeAll: string,
+    includeAll: string,
     @Request() req,
   ) {
+    // Check if user is admin and wants to see all reviews
     const showAll = req.user?.role === UserRole.ADMIN && includeAll === "true"
-    console.log(productId, 'product id')
+    console.log(productId, "product id")
     return this.reviewService.findByProduct(productId, page, limit, showAll)
   }
 
@@ -100,13 +83,15 @@ getAllReviews(
   @ApiOperation({ summary: "Get review statistics for a product" })
   @ApiResponse({ status: 200, description: "Review stats retrieved successfully" })
   @ApiParam({ name: "productId", description: "Product ID" })
-  getReviewStats(@Param('productId') productId: string) {
+  getReviewStats(productId: string) {
     return this.reviewService.getReviewStats(productId)
   }
 
   @Get("pending")
-  @Roles(UserRole.ADMIN)
-  @ApiOperation({ summary: "Get pending reviews (Admin only)" })
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "Get pending reviews (Admin/Staff only)" })
   @ApiResponse({ status: 200, description: "Pending reviews retrieved successfully" })
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "limit", required: false, type: Number })
@@ -118,7 +103,9 @@ getAllReviews(
   }
 
   @Get("user/my-reviews")
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.CUSTOMER, UserRole.ADMIN, UserRole.STAFF)
+  @ApiBearerAuth()
   @ApiOperation({ summary: "Get current user's reviews" })
   @ApiResponse({ status: 200, description: "User reviews retrieved successfully" })
   @ApiQuery({ name: "page", required: false, type: Number })
@@ -131,27 +118,25 @@ getAllReviews(
     return this.reviewService.findUserReviews(req.user.sub, page, limit)
   }
 
-  @Patch(':id/reject')
+  @Patch(":id/reject")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.STAFF)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Reject a review (admin only)' })
-  @ApiResponse({ status: 200, description: 'Review rejected successfully', type: ProductReview })
-  async reject(
-    @Param('id') id: string,
-    @Body('rejectionReason') rejectionReason: string,
-  ): Promise<ProductReview> {
+  @ApiOperation({ summary: "Reject a review (admin/staff only)" })
+  @ApiResponse({ status: 200, description: "Review rejected successfully", type: ProductReview })
+  async reject(id: string, rejectionReason: string): Promise<ProductReview> {
     return this.reviewService.rejectReview(id, rejectionReason)
   }
 
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @Delete(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete a review' })
-  @ApiResponse({ status: 200, description: 'Review deleted successfully' })
-  async remove(@Param('id') id: string, @Request() req): Promise<{ message: string }> {
+  @ApiOperation({ summary: "Delete a review (admin/staff only)" })
+  @ApiResponse({ status: 200, description: "Review deleted successfully" })
+  async remove(id: string, @Request() req): Promise<{ message: string }> {
     const userId = req.user.sub || req.user.id
     await this.reviewService.deleteReview(id, userId)
-    return { message: 'Review deleted successfully' }
+    return { message: "Review deleted successfully" }
   }
 }

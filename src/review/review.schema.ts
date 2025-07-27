@@ -1,5 +1,89 @@
+// import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
+// import { Document, Schema as MongooseSchema } from "mongoose"
+
+// export type ProductReviewDocument = ProductReview & Document
+
+// export enum ProductReviewStatus {
+//   PENDING = "pending",
+//   APPROVED = "approved",
+//   REJECTED = "rejected",
+// }
+
+// export enum UserRole {
+//   CUSTOMER = "customer",
+//   ADMIN = "admin",
+//   STAFF = "staff",
+// }
+
+// @Schema({ 
+//   timestamps: true,
+//   toJSON: {
+//     virtuals: true,
+//     transform: (doc, ret) => {
+//       delete ret.__v
+//       return ret
+//     },
+//   },
+// })
+// export class ProductReview {
+//   @Prop({ 
+//     type: MongooseSchema.Types.ObjectId, 
+//     ref: "Product", 
+//     required: true,
+//     index: true
+//   })
+//   productId: MongooseSchema.Types.ObjectId
+
+//   @Prop({ 
+//     required: true,
+//     index: true
+//   })
+//   userId: string
+
+//   @Prop({ required: true })
+//   userName: string
+
+//   @Prop({ required: true })
+//   email: string
+
+//   @Prop({ required: true, enum: UserRole })
+//   userRole: UserRole
+
+//   @Prop({ required: true, min: 1, max: 5 })
+//   rating: number
+
+//   @Prop({ maxlength: 1000 })
+//   comment?: string
+
+//   @Prop({ maxlength: 200 })
+//   title?: string
+
+//   @Prop({ enum: ProductReviewStatus, default: ProductReviewStatus.PENDING })
+//   status: ProductReviewStatus
+
+//   @Prop()
+//   approvedBy?: string
+
+//   @Prop()
+//   approvedAt?: Date
+
+//   @Prop({ maxlength: 500 })
+//   rejectionReason?: string
+
+//   createdAt?: Date
+//   updatedAt?: Date
+// }
+
+// export const ProductReviewSchema = SchemaFactory.createForClass(ProductReview)
+
+// // Compound indexes for efficient queries
+// ProductReviewSchema.index({ productId: 1, status: 1 })
+// ProductReviewSchema.index({ userId: 1, productId: 1 }, { unique: true }) // Prevent duplicate reviews
+// ProductReviewSchema.index({ status: 1, createdAt: -1 })
+// ProductReviewSchema.index({ userRole: 1 })
+
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
-import { Document, Schema as MongooseSchema } from "mongoose"
+import { type Document, Schema as MongooseSchema } from "mongoose"
 
 export type ProductReviewDocument = ProductReview & Document
 
@@ -13,9 +97,10 @@ export enum UserRole {
   CUSTOMER = "customer",
   ADMIN = "admin",
   STAFF = "staff",
+  ANONYMOUS = "anonymous",
 }
 
-@Schema({ 
+@Schema({
   timestamps: true,
   toJSON: {
     virtuals: true,
@@ -26,24 +111,34 @@ export enum UserRole {
   },
 })
 export class ProductReview {
-  @Prop({ 
-    type: MongooseSchema.Types.ObjectId, 
-    ref: "Product", 
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: "Product",
     required: true,
-    index: true
+    index: true,
   })
   productId: MongooseSchema.Types.ObjectId
 
-  @Prop({ 
-    required: true,
-    index: true
+  @Prop({
+    required: false, // Made optional for anonymous reviews
+    index: true,
   })
-  userId: string
+  userId?: string
+
+  @Prop({
+    required: false, // Made optional for anonymous reviews
+    default: "Anonymous",
+  })
+  userName?: string
 
   @Prop({ required: true })
-  userName: string
+  email: string
 
-  @Prop({ required: true, enum: UserRole })
+  @Prop({
+    required: true,
+    enum: UserRole,
+    default: UserRole.ANONYMOUS,
+  })
   userRole: UserRole
 
   @Prop({ required: true, min: 1, max: 5 })
@@ -55,7 +150,22 @@ export class ProductReview {
   @Prop({ maxlength: 200 })
   title?: string
 
-  @Prop({ enum: ProductReviewStatus, default: ProductReviewStatus.PENDING })
+  @Prop({
+    type: [String],
+    default: [],
+    validate: {
+      validator: (urls: string[]) => {
+        return urls.length <= 5 // Limit to 5 images per review
+      },
+      message: "Maximum 5 images allowed per review",
+    },
+  })
+  imageUrls: string[]
+
+  @Prop({
+    enum: ProductReviewStatus,
+    default: ProductReviewStatus.PENDING,
+  })
   status: ProductReviewStatus
 
   @Prop()
@@ -73,8 +183,9 @@ export class ProductReview {
 
 export const ProductReviewSchema = SchemaFactory.createForClass(ProductReview)
 
-// Compound indexes for efficient queries
+// Updated indexes for efficient queries
 ProductReviewSchema.index({ productId: 1, status: 1 })
-ProductReviewSchema.index({ userId: 1, productId: 1 }, { unique: true }) // Prevent duplicate reviews
+ProductReviewSchema.index({ email: 1, productId: 1 }) // Changed from userId to email for duplicate prevention
 ProductReviewSchema.index({ status: 1, createdAt: -1 })
 ProductReviewSchema.index({ userRole: 1 })
+ProductReviewSchema.index({ userId: 1 }, { sparse: true }) // Sparse index for optional userId
