@@ -10,6 +10,7 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
   Body,
+  Param,
 } from "@nestjs/common"
 import { ReviewService } from "./review.service"
 import { CreateProductReviewDto } from "./dto/create-product-review.dto"
@@ -67,14 +68,16 @@ export class ReviewController {
   @ApiQuery({ name: "limit", required: false, type: Number })
   @ApiQuery({ name: "includeAll", required: false, type: String })
   findByProduct(
-    productId: string,
+    // productId: string,
+    @Param('productId') productId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
     includeAll: string,
     @Request() req,
   ) {
     // Check if user is admin and wants to see all reviews
-    const showAll = req.user?.role === UserRole.ADMIN && includeAll === "true"
+    // const showAll = req.user?.role === UserRole.ADMIN && includeAll === "true"
+     const showAll = true
     console.log(productId, "product id")
     return this.reviewService.findByProduct(productId, page, limit, showAll)
   }
