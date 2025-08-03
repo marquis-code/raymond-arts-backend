@@ -129,5 +129,31 @@ export class UsersController {
 
     return this.usersService.uploadProfileImage(id, file)
   }
+
+
+@Post(":id/activate")
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
+@ApiBearerAuth()
+@ApiOperation({ summary: "Activate a user" })
+@ApiResponse({ status: 200, description: "User activated successfully" })
+@ApiResponse({ status: 401, description: "Unauthorized" })
+@ApiResponse({ status: 404, description: "User not found" })
+activate(@Param("id") id: string) {
+  return this.usersService.activateUser(id)
+}
+
+@Post(":id/deactivate")
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN)
+@ApiBearerAuth()
+@ApiOperation({ summary: "Deactivate a user" })
+@ApiResponse({ status: 200, description: "User deactivated successfully" })
+@ApiResponse({ status: 401, description: "Unauthorized" })
+@ApiResponse({ status: 404, description: "User not found" })
+deactivate(@Param("id") id: string) {
+  return this.usersService.deactivateUser(id)
+}
+
 }
 

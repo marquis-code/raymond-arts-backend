@@ -65,9 +65,6 @@ import { ContentModule } from './content/content.module';
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
-        // uri: configService.get<string>("MONGODB_URI"),
-        // useNewUrlParser: true,
-        // useUnifiedTopology: true,
       }),
     }),
 

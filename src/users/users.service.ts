@@ -9,7 +9,6 @@ import type { UpdateUserDto } from "./dto/update-user.dto"
 import type { PaginationParams, PaginatedResult } from "../common/interfaces/pagination.interface"
 import { CloudinaryService } from "../cloudinary/cloudinary.service"
 import { AuditService } from "../audit/audit.service"
-import type { Express } from "express"
 
 @Injectable()
 export class UsersService {
@@ -252,5 +251,47 @@ export class UsersService {
 
     return user
   }
+
+
+  async activateUser(id: string): Promise<User> {
+    const user = await this.findById(id)
+  
+    if (user.isActive) {
+      throw new BadRequestException('User is already active')
+    }
+  
+    user.isActive = true
+    await user.save()
+  
+    await this.auditService.createAuditLog({
+      action: "ACTIVATE",
+      userId: id,
+      module: "USERS",
+      description: `User activated: ${user.email}`,
+    })
+  
+    return user
+  }
+  
+  async deactivateUser(id: string): Promise<User> {
+    const user = await this.findById(id)
+  
+    if (!user.isActive) {
+      throw new BadRequestException('User is already inactive')
+    }
+  
+    user.isActive = false
+    await user.save()
+  
+    await this.auditService.createAuditLog({
+      action: "DEACTIVATE",
+      userId: id,
+      module: "USERS",
+      description: `User deactivated: ${user.email}`,
+    })
+  
+    return user
+  }
+  
 }
 
