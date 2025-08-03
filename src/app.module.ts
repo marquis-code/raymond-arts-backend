@@ -32,6 +32,7 @@ import { CommissionModule } from "./commission/commission.module"
 import { PromoSaleModule } from './promosale/promosale.module';
 import { ReviewModule } from './review/review.module';
 import { ContentModule } from './content/content.module';
+import { OriginalsModule } from "./originals/originals.module"
 
 @Module({
   imports: [
@@ -110,7 +111,8 @@ import { ContentModule } from './content/content.module';
     CommissionModule,
     PromoSaleModule,
     ReviewModule,
-    ContentModule
+    ContentModule,
+    OriginalsModule
   ],
 })
 export class AppModule {}
