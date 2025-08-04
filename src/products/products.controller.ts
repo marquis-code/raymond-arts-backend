@@ -385,6 +385,20 @@ export class ProductsController {
     return this.productsService.findNewProducts(limit);
   }
 
+  @Patch("reorder") // New endpoint for reordering products
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN, UserRole.STAFF)
+  // @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: "Reorder products" })
+  @ApiResponse({ status: 200, description: "Products order updated successfully" })
+  @ApiResponse({ status: 400, description: "Bad request" })
+  @ApiResponse({ status: 401, description: "Unauthorized" })
+  async reorder(@Body() reorderProductsDto: ReorderProductsDto) {
+    await this.productsService.updateProductOrder(reorderProductsDto.orderedProducts)
+    return { message: "Products order updated successfully" }
+  }
+
   @Get('bestsellers')
   @ApiOperation({ summary: 'Get bestseller products' })
   @ApiResponse({ status: 200, description: 'Bestseller products retrieved successfully' })
@@ -486,20 +500,6 @@ export class ProductsController {
     return this.productsService.removeProductImage(id, imageUrl, req.user.sub)
   }
 
-
-@Patch("reorder") // New endpoint for reordering products
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN, UserRole.STAFF)
-@ApiBearerAuth()
-@HttpCode(HttpStatus.OK)
-@ApiOperation({ summary: "Reorder products" })
-@ApiResponse({ status: 200, description: "Products order updated successfully" })
-@ApiResponse({ status: 400, description: "Bad request" })
-@ApiResponse({ status: 401, description: "Unauthorized" })
-async reorder(@Body() reorderProductsDto: ReorderProductsDto) {
-  await this.productsService.updateProductOrder(reorderProductsDto.orderedProducts)
-  return { message: "Products order updated successfully" }
-}
 
   @Post("categories")
   @UseGuards(JwtAuthGuard, RolesGuard)
