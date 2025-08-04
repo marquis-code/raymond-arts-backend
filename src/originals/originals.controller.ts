@@ -25,6 +25,13 @@ export class OriginalsController {
     return this.originalsService.findOne(id);
   }
 
+  @Patch("reorder") // New endpoint for reordering
+  @HttpCode(HttpStatus.OK)
+  async reorder(@Body() reorderOriginalsDto: ReorderOriginalsDto) {
+    await this.originalsService.updateOrder(reorderOriginalsDto.orderedOriginals)
+    return { message: "Originals order updated successfully" }
+  }
+
   @Patch(":id")
   update(@Param('id') id: string, @Body() updateOriginalDto: UpdateOriginalDto) {
     // Removed @Body() decorator
@@ -37,10 +44,4 @@ export class OriginalsController {
     return this.originalsService.remove(id);
   }
 
-  @Patch("reorder") // New endpoint for reordering
-  @HttpCode(HttpStatus.OK)
-  async reorder(@Body() reorderOriginalsDto: ReorderOriginalsDto) {
-    await this.originalsService.updateOrder(reorderOriginalsDto.orderedOriginals)
-    return { message: "Originals order updated successfully" }
-  }
 }
