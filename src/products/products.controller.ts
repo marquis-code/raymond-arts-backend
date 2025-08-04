@@ -309,6 +309,7 @@ import {
   BadRequestException,
   HttpCode,
   HttpStatus,
+  Body
 } from "@nestjs/common"
 import { FileInterceptor } from "@nestjs/platform-express"
 import { ProductsService } from "./products.service"
@@ -348,7 +349,7 @@ export class ProductsController {
   @ApiResponse({ status: 201, description: "Product created successfully" })
   @ApiResponse({ status: 400, description: "Bad request" })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  create(createProductDto: CreateProductDto, @Request() req) {
+  create(@Body() createProductDto: CreateProductDto, @Request() req) {
     console.log(req.body, "request body")
     console.log(createProductDto, "dto bofuy")
     return this.productsService.createProduct(createProductDto, req.user.sub) // Pass DTO directly
@@ -428,7 +429,7 @@ export class ProductsController {
   @ApiResponse({ status: 401, description: "Unauthorized" })
   @ApiResponse({ status: 404, description: "Product not found" })
   @ApiParam({ name: "id", description: "Product ID" })
-  update(@Param('id') id: string, updateProductDto: UpdateProductDto, @Request() req) {
+  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto, @Request() req) {
     return this.productsService.updateProduct(id, updateProductDto, req.user.sub) // Pass DTO directly
   }
 
@@ -485,19 +486,20 @@ export class ProductsController {
     return this.productsService.removeProductImage(id, imageUrl, req.user.sub)
   }
 
-  @Patch("reorder") // New endpoint for reordering products
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.STAFF)
-  @ApiBearerAuth()
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: "Reorder products" })
-  @ApiResponse({ status: 200, description: "Products order updated successfully" })
-  @ApiResponse({ status: 400, description: "Bad request" })
-  @ApiResponse({ status: 401, description: "Unauthorized" })
-  async reorder(reorderProductsDto: ReorderProductsDto) {
-    await this.productsService.updateProductOrder(reorderProductsDto.orderedProducts)
-    return { message: "Products order updated successfully" }
-  }
+
+@Patch("reorder") // New endpoint for reordering products
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.ADMIN, UserRole.STAFF)
+@ApiBearerAuth()
+@HttpCode(HttpStatus.OK)
+@ApiOperation({ summary: "Reorder products" })
+@ApiResponse({ status: 200, description: "Products order updated successfully" })
+@ApiResponse({ status: 400, description: "Bad request" })
+@ApiResponse({ status: 401, description: "Unauthorized" })
+async reorder(@Body() reorderProductsDto: ReorderProductsDto) {
+  await this.productsService.updateProductOrder(reorderProductsDto.orderedProducts)
+  return { message: "Products order updated successfully" }
+}
 
   @Post("categories")
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -507,7 +509,7 @@ export class ProductsController {
   @ApiResponse({ status: 201, description: "Category created successfully" })
   @ApiResponse({ status: 400, description: "Bad request" })
   @ApiResponse({ status: 401, description: "Unauthorized" })
-  createCategory(createCategoryDtoInput: CreateCategoryDto, @Request() req) {
+  createCategory(@Body() createCategoryDtoInput: CreateCategoryDto, @Request() req) {
     // Use DTO type
     console.log("Controller received raw input:", createCategoryDtoInput)
     // Extract data from the function object
@@ -553,7 +555,7 @@ export class ProductsController {
   @ApiResponse({ status: 401, description: "Unauthorized" })
   @ApiResponse({ status: 404, description: "Category not found" })
   @ApiParam({ name: "id", description: "Category ID" })
-  updateCategory(@Param('id') id: string, updateCategoryDto: UpdateCategoryDto, @Request() req) {
+  updateCategory(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto, @Request() req) {
     return this.productsService.updateCategory(id, updateCategoryDto, req.user.sub) // Pass DTO directly
   }
 
