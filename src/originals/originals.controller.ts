@@ -20,16 +20,16 @@ export class OriginalsController {
     return this.originalsService.findAll()
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.originalsService.findOne(id);
-  }
-
   @Patch("reorder") // New endpoint for reordering
   @HttpCode(HttpStatus.OK)
   async reorder(@Body() reorderOriginalsDto: ReorderOriginalsDto) {
     await this.originalsService.updateOrder(reorderOriginalsDto.orderedOriginals)
     return { message: "Originals order updated successfully" }
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.originalsService.findOne(id);
   }
 
   @Patch(":id")
