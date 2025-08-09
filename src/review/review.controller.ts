@@ -1,3 +1,4 @@
+
 // import {
 //   Controller,
 //   Get,
@@ -32,7 +33,7 @@
 //   @ApiOperation({ summary: "Update review status (admin/staff only)" })
 //   @ApiResponse({ status: 200, description: "Review status updated successfully" })
 //   @ApiResponse({ status: 404, description: "Review not found" })
-//   async updateReviewStatus(id: string, status: ProductReviewStatus, req): Promise<{ message: string }> {
+//   async updateReviewStatus(@Param('id') id: string, @Body('status') status: ProductReviewStatus, @Request() req): Promise<{ message: string }> {
 //     const userId = req.user.sub || req.user.id
 //     await this.reviewService.updateReviewStatus(id, status, userId)
 //     return { message: "Review status updated successfully" }
@@ -68,11 +69,10 @@
 //   @ApiQuery({ name: "limit", required: false, type: Number })
 //   @ApiQuery({ name: "includeAll", required: false, type: String })
 //   findByProduct(
-//     // productId: string,
 //     @Param('productId') productId: string,
 //     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
 //     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
-//     includeAll: string,
+//     @Query('includeAll') includeAll: string,
 //     @Request() req,
 //   ) {
 //     // Check if user is admin and wants to see all reviews
@@ -86,7 +86,7 @@
 //   @ApiOperation({ summary: "Get review statistics for a product" })
 //   @ApiResponse({ status: 200, description: "Review stats retrieved successfully" })
 //   @ApiParam({ name: "productId", description: "Product ID" })
-//   getReviewStats(productId: string) {
+//   getReviewStats(@Param('productId') productId: string) {
 //     return this.reviewService.getReviewStats(productId)
 //   }
 
@@ -127,7 +127,7 @@
 //   @ApiBearerAuth()
 //   @ApiOperation({ summary: "Reject a review (admin/staff only)" })
 //   @ApiResponse({ status: 200, description: "Review rejected successfully", type: ProductReview })
-//   async reject(id: string, rejectionReason: string): Promise<ProductReview> {
+//   async reject(@Param('id') id: string, @Body('rejectionReason') rejectionReason: string): Promise<ProductReview> {
 //     return this.reviewService.rejectReview(id, rejectionReason)
 //   }
 
@@ -137,10 +137,10 @@
 //   @ApiBearerAuth()
 //   @ApiOperation({ summary: "Approve a review (admin/staff only)" })
 //   @ApiResponse({ status: 200, description: "Review approved successfully", type: ProductReview })
-//   async approve(id: string, req): Promise<any> {
-//     console.log(req.user, 'user jere')
-//     // const userId = req.user.sub || req.user.id
-//     // return this.reviewService.approveReview(id,userId)
+//   async approve(@Param('id') id: string, @Request() req): Promise<any> {
+//     console.log(req.user, 'user here')
+//     const userId = req.user.sub || req.user.id
+//     return this.reviewService.approveReview(id, userId)
 //   }
 
 //   @Delete(":id")
@@ -149,12 +149,13 @@
 //   @ApiBearerAuth()
 //   @ApiOperation({ summary: "Delete a review (admin/staff only)" })
 //   @ApiResponse({ status: 200, description: "Review deleted successfully" })
-//   async remove(id: string, @Request() req): Promise<{ message: string }> {
+//   async remove(@Param('id') id: string, @Request() req): Promise<{ message: string }> {
 //     const userId = req.user.sub || req.user.id
 //     await this.reviewService.deleteReview(id, userId)
 //     return { message: "Review deleted successfully" }
 //   }
 // }
+
 
 
 import {
@@ -191,15 +192,21 @@ export class ReviewController {
   @ApiOperation({ summary: "Update review status (admin/staff only)" })
   @ApiResponse({ status: 200, description: "Review status updated successfully" })
   @ApiResponse({ status: 404, description: "Review not found" })
-  async updateReviewStatus(@Param('id') id: string, @Body('status') status: ProductReviewStatus, @Request() req): Promise<{ message: string }> {
+  async updateReviewStatus(
+    @Param('id') id: string, 
+    @Body('status') status: ProductReviewStatus, 
+    @Request() req
+  ): Promise<{ message: string }> {
     const userId = req.user.sub || req.user.id
     await this.reviewService.updateReviewStatus(id, status, userId)
     return { message: "Review status updated successfully" }
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new review (no authentication required)' })
+  @ApiOperation({ summary: 'Create a new review (productId or productName required)' })
   @ApiResponse({ status: 201, description: 'Review created successfully', type: ProductReview })
+  @ApiResponse({ status: 400, description: 'Bad Request - Validation failed or missing productId/productName' })
+  @ApiResponse({ status: 404, description: 'Not Found - Product not found if productId was provided' })
   async create(@Body() createReviewDto: CreateProductReviewDto): Promise<ProductReview> {
     return this.reviewService.createReview(createReviewDto)
   }
@@ -216,16 +223,17 @@ export class ReviewController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
+    // This endpoint will return all reviews, including those with only a productName
     return this.reviewService.findAllReviews(page, limit)
   }
 
   @Get("product/:productId")
-  @ApiOperation({ summary: "Get reviews for a product" })
+  @ApiOperation({ summary: "Get reviews for a specific product ID" })
   @ApiResponse({ status: 200, description: "Reviews retrieved successfully" })
   @ApiParam({ name: "productId", description: "Product ID" })
   @ApiQuery({ name: "page", required: false, type: Number })
   @ApiQuery({ name: "limit", required: false, type: Number })
-  @ApiQuery({ name: "includeAll", required: false, type: String })
+  @ApiQuery({ name: "includeAll", required: false, type: String, description: "Set to 'true' to include pending/rejected reviews (Admin/Staff only)" })
   findByProduct(
     @Param('productId') productId: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
@@ -233,18 +241,20 @@ export class ReviewController {
     @Query('includeAll') includeAll: string,
     @Request() req,
   ) {
-    // Check if user is admin and wants to see all reviews
+    // This endpoint will ONLY return reviews linked by productId
+    // Reviews created with only productName will NOT appear here.
     // const showAll = req.user?.role === UserRole.ADMIN && includeAll === "true"
-     const showAll = true
+    const showAll = true
     console.log(productId, "product id")
     return this.reviewService.findByProduct(productId, page, limit, showAll)
   }
 
   @Get("product/:productId/stats")
-  @ApiOperation({ summary: "Get review statistics for a product" })
+  @ApiOperation({ summary: "Get review statistics for a specific product ID" })
   @ApiResponse({ status: 200, description: "Review stats retrieved successfully" })
   @ApiParam({ name: "productId", description: "Product ID" })
   getReviewStats(@Param('productId') productId: string) {
+    // This endpoint will ONLY calculate stats for reviews linked by productId
     return this.reviewService.getReviewStats(productId)
   }
 
@@ -260,6 +270,7 @@ export class ReviewController {
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number,
   ) {
+    // This endpoint will return all pending reviews, regardless of productId or productName
     return this.reviewService.findPendingReviews(page, limit)
   }
 
