@@ -33,6 +33,7 @@ import { PromoSaleModule } from './promosale/promosale.module';
 import { ReviewModule } from './review/review.module';
 import { ContentModule } from './content/content.module';
 import { OriginalsModule } from "./originals/originals.module"
+import { ReviewMgtModule } from "./review-mgt/review-mgt.module"
 
 @Module({
   imports: [
@@ -112,7 +113,8 @@ import { OriginalsModule } from "./originals/originals.module"
     PromoSaleModule,
     ReviewModule,
     ContentModule,
-    OriginalsModule
+    OriginalsModule,
+    ReviewMgtModule
   ],
 })
 export class AppModule {}

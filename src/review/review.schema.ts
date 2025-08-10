@@ -107,8 +107,9 @@
 // ProductReviewSchema.index({ userId: 1 }, { sparse: true }) // Sparse index for optional userId
 
 
+
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
-import { type Document, Schema as MongooseSchema, Types } from "mongoose" // Import 'Types' here
+import { type Document, Schema as MongooseSchema, type Types } from "mongoose" // Import 'Types' here
 
 export type ProductReviewDocument = ProductReview & Document
 
@@ -137,18 +138,12 @@ export enum UserRole {
 })
 export class ProductReview {
   @Prop({
-    type: MongooseSchema.Types.ObjectId, // This remains MongooseSchema.Types.ObjectId for schema definition
+    type: MongooseSchema.Types.ObjectId, // This remains MongooseSchema.Types.ObjectId for the schema definition
     ref: "Product",
-    required: false, // Made optional
+    required: true,
     index: true,
   })
-  productId?: Types.ObjectId // Change this to Types.ObjectId for the TypeScript type
-
-  @Prop({
-    required: false, // Conditionally required by DTO/service
-    index: true,
-  })
-  productName?: string // New field for custom product name
+  productId: Types.ObjectId // Change this to Types.ObjectId
 
   @Prop({
     required: false, // Made optional for anonymous reviews
@@ -216,9 +211,7 @@ export const ProductReviewSchema = SchemaFactory.createForClass(ProductReview)
 
 // Updated indexes for efficient queries
 ProductReviewSchema.index({ productId: 1, status: 1 })
-ProductReviewSchema.index({ productName: 1, status: 1 }) // New index for custom name reviews
-ProductReviewSchema.index({ email: 1, productId: 1 }) // Keep for product-linked reviews
-ProductReviewSchema.index({ email: 1, productName: 1 }) // New index for custom name reviews
+ProductReviewSchema.index({ email: 1, productId: 1 }) // Changed from userId to email for duplicate prevention
 ProductReviewSchema.index({ status: 1, createdAt: -1 })
 ProductReviewSchema.index({ userRole: 1 })
 ProductReviewSchema.index({ userId: 1 }, { sparse: true }) // Sparse index for optional userId
