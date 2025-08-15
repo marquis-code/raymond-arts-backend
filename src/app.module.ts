@@ -34,6 +34,7 @@ import { ReviewModule } from './review/review.module';
 import { ContentModule } from './content/content.module';
 import { OriginalsModule } from "./originals/originals.module"
 import { ReviewMgtModule } from "./review-mgt/review-mgt.module"
+import { RedisModule } from "./redis/redis.module"
 
 @Module({
   imports: [
@@ -56,6 +57,13 @@ import { ReviewMgtModule } from "./review-mgt/review-mgt.module"
           frontend: {
             url: process.env.FRONTEND_URL,
           },
+          redis: {
+            host: process.env.REDIS_HOST,
+            port: process.env.REDIS_PORT,
+            password: process.env.REDIS_PASSWORD,
+            db: process.env.REDIS_DB,
+            ttl: process.env.REDIS_TTL,
+          },
         }),
       ],
       envFilePath: '.env'
@@ -69,7 +77,7 @@ import { ReviewMgtModule } from "./review-mgt/review-mgt.module"
         uri: configService.get<string>('MONGODB_URI'),
       }),
     }),
-
+    RedisModule,
     // Event emitter for handling events across modules
     EventEmitterModule.forRoot(),
 
