@@ -2,8 +2,10 @@ import { Module } from "@nestjs/common"
 import { ConfigModule, ConfigService } from "@nestjs/config"
 import { MongooseModule } from "@nestjs/mongoose"
 import { EventEmitterModule } from "@nestjs/event-emitter"
+import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from "@nestjs/schedule"
 import { ThrottlerModule } from "@nestjs/throttler"
+import { ThrottlerGuard } from '@nestjs/throttler';
 
 import { UsersModule } from "./users/users.module"
 import { MulterModule } from '@nestjs/platform-express';
@@ -35,9 +37,14 @@ import { ContentModule } from './content/content.module';
 import { OriginalsModule } from "./originals/originals.module"
 import { ReviewMgtModule } from "./review-mgt/review-mgt.module"
 import { RedisModule } from "./redis/redis.module"
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
+    // ThrottlerModule.forRoot({
+    //   ttl: 60,   // in seconds
+    //   limit: 10, // max requests within ttl
+    // }),
     // Configuration
     MulterModule.register({
       limits: {
@@ -85,14 +92,29 @@ import { RedisModule } from "./redis/redis.module"
     ScheduleModule.forRoot(),
 
     // Rate limiting
-    ThrottlerModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        ttl: config.get<number>("THROTTLE_TTL", 60),
-        limit: config.get<number>("THROTTLE_LIMIT", 100),
+      ThrottlerModule.forRootAsync({
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          throttlers: [
+            {
+              ttl: config.get<number>('THROTTLE_TTL', 60),   // in seconds
+              limit: config.get<number>('THROTTLE_LIMIT', 100),
+            },
+          ],
+        }),
       }),
-    }),
+
+
+    // // Rate limiting
+    // ThrottlerModule.forRootAsync({
+    //   imports: [ConfigModule],
+    //   inject: [ConfigService],
+    //   useFactory: (config: ConfigService) => ({
+    //     ttl: config.get<number>("THROTTLE_TTL", 60),
+    //     limit: config.get<number>("THROTTLE_LIMIT", 100),
+    //   }),
+    // }),
 
     // Application modules
     UploadModule,
@@ -122,7 +144,14 @@ import { RedisModule } from "./redis/redis.module"
     ReviewModule,
     ContentModule,
     OriginalsModule,
-    ReviewMgtModule
+    ReviewMgtModule,
+     AnalyticsModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}
