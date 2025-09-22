@@ -39,6 +39,8 @@ import { ReviewMgtModule } from "./review-mgt/review-mgt.module"
 import { RedisModule } from "./redis/redis.module"
 import { AnalyticsModule } from './analytics/analytics.module';
 
+import { ImageModule } from './image/image.module';
+
 @Module({
   imports: [
     // ThrottlerModule.forRoot({
@@ -146,6 +148,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
     OriginalsModule,
     ReviewMgtModule,
      AnalyticsModule,
+     ImageModule,
   ],
   providers: [
     {
