@@ -5,7 +5,7 @@ export type ImageDocument = Image & Document
 
 @Schema({ timestamps: true })
 export class Image {
-  @Prop({ required: true })
+  @Prop({ required: false })
   name: string
 
   @Prop({ required: true })

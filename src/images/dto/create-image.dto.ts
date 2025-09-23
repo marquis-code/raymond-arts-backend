@@ -1,15 +1,32 @@
-import { IsOptional, IsString, IsArray } from "class-validator"
+import { IsOptional, IsString } from "class-validator"
+import { Transform } from "class-transformer"
 
 export class CreateImageDto {
-  @IsString()
-  name: string
-
-  @IsString()
   @IsOptional()
+  @IsString()
+  name?: string
+
+  @IsOptional()
+  @IsString()
   description?: string
 
-  @IsArray()
-  @IsString({ each: true })
   @IsOptional()
-  tags?: string[]
+  @IsString()
+  @Transform(({ value }) => {
+    // Handle both comma-separated strings and JSON arrays from form data
+    if (typeof value === 'string') {
+      try {
+        // Try to parse as JSON first
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      } catch {
+        // If JSON parsing fails, split by comma
+        return value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      }
+    }
+    return value;
+  })
+  tags?: string | string[] // Accept both string and array
 }

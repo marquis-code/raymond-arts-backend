@@ -39,7 +39,7 @@ import { ReviewMgtModule } from "./review-mgt/review-mgt.module"
 import { RedisModule } from "./redis/redis.module"
 import { AnalyticsModule } from './analytics/analytics.module';
 
-import { ImageModule } from './image/image.module';
+// import { ImageModule } from './image/image.module';
 
 @Module({
   imports: [
@@ -148,8 +148,8 @@ import { ImageModule } from './image/image.module';
     OriginalsModule,
     ReviewMgtModule,
      AnalyticsModule,
-     ImageModule,
-  ],
+    //  ImageModule,
+  ],                                                                                                           
   providers: [
     {
       provide: APP_GUARD,
