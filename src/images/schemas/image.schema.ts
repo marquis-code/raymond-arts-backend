@@ -1,36 +1,85 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
-import type { Document } from "mongoose"
+// import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
+// import type { Document } from "mongoose"
 
-export type ImageDocument = Image & Document
+// export type ImageDocument = Image & Document
 
-@Schema({ timestamps: true })
+// @Schema({ timestamps: true })
+// export class Image {
+//   @Prop({ required: false })
+//   name: string
+
+//   @Prop({ required: true })
+//   url: string
+
+//   @Prop({ required: true })
+//   publicId: string
+
+//   @Prop()
+//   description: string
+
+//   @Prop()
+//   tags: string[]
+
+//   @Prop()
+//   size: number
+
+//   @Prop()
+//   format: string
+
+//   @Prop()
+//   width: number
+
+//   @Prop()
+//   height: number
+// }
+
+// export const ImageSchema = SchemaFactory.createForClass(Image)
+
+
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document } from 'mongoose';
+
+export type ImageDocument = Image & Document;
+
+@Schema({
+  timestamps: true, // Automatically adds createdAt and updatedAt fields
+})
 export class Image {
-  @Prop({ required: false })
-  name: string
+  @Prop({ required: true })
+  name: string;
 
   @Prop({ required: true })
-  url: string
+  url: string;
+
+  @Prop({ required: true, unique: true })
+  publicId: string;
+
+  @Prop({ default: '' })
+  description: string;
+
+  @Prop({ type: [String], default: [] })
+  tags: string[];
 
   @Prop({ required: true })
-  publicId: string
+  size: number; // File size in bytes
 
-  @Prop()
-  description: string
+  @Prop({ required: true, default: 'webp' })
+  format: string; // File format (should always be webp after processing)
 
-  @Prop()
-  tags: string[]
+  @Prop({ required: true })
+  width: number;
 
-  @Prop()
-  size: number
+  @Prop({ required: true })
+  height: number;
 
-  @Prop()
-  format: string
+  @Prop({ required: true })
+  originalName: string; // Store the original filename
 
-  @Prop()
-  width: number
+  @Prop({ required: true })
+  originalSize: number; // Original file size before optimization
 
-  @Prop()
-  height: number
+  @Prop({ required: true })
+  compressionRatio: number; // Percentage of size reduction achieved
 }
 
-export const ImageSchema = SchemaFactory.createForClass(Image)
+export const ImageSchema = SchemaFactory.createForClass(Image);
